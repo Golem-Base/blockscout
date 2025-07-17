@@ -1,4 +1,9 @@
-.PHONY: run logs stop run-nofe logs-nofe stop-nofe clear db
+.PHONY: run logs stop run-nofe logs-nofe stop-nofe clear db restart restart-nofe recreate recreate-nofe
+
+restart: stop run
+restart-nofe: stop-nofe run-nofe
+recreate: stop clear run
+recreate-nofe: stop-nofe clear run-nofe
 
 run:
 	docker compose -f ./docker-compose/dev-no-services.yml up -d
