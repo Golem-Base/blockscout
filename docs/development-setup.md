@@ -81,7 +81,13 @@ mix do deps.get, local.rebar --force, deps.compile
 mix phx.gen.secret
 ```
 
-Replace `SECRET_KEY_BASE` in `.env.dev` file with obtained secret key.
+Replace `SECRET_KEY_BASE` in `.env-dev` file with obtained secret key.
+
+### Setup environment variables
+
+```bash
+source .env-dev
+```
 
 ### Compile backend
 
