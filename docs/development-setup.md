@@ -8,7 +8,11 @@ This guide provides instructions for running Blockscout backend for development 
 
 ```bash
 brew update
-brew install erlang elixir postgresql@14 node automake libtool gcc gmp nvm asdf
+brew install postgresql@14 node automake libtool gcc gmp nvm asdf
+
+# Setup asdf
+echo 'export PATH=$PATH:$HOME/.asdf/shims' >> ~/.zshenv
+export PATH=$PATH:$HOME/.asdf/shims
 
 # Install Erlang, Elixir and NodeJS
 asdf plugin add erlang
@@ -32,6 +36,8 @@ sudo apt-get install git automake libtool inotify-tools libgmp-dev libgmp10 buil
 
 # Install asdf
 git clone https://github.com/asdf-vm/asdf.git ~/.asdf
+
+# Setup asdf
 echo '. ~/.asdf/asdf.sh' >> ~/.bashrc
 . ~/.asdf/asdf.sh
 
