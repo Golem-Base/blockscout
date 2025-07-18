@@ -43,7 +43,6 @@ services:
   proxy:
     depends_on:
       - backend
-      - frontend
     extends:
       file: ./services/nginx-explorer.yml
       service: proxy
