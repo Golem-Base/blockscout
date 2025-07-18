@@ -1,10 +1,15 @@
 # Blockscout Backend Development Setup
 
-This guide provides instructions for running Blockscout backend for development against a local blockchain without Docker.
+This guide helps you set up a local Blockscout backend development environment without Docker
 
 ## Install dependencies
 
-### macOS
+Choose your operating system:
+
+- [macOS](#macos-dependencies)
+- [Ubuntu](#ubuntu-dependencies)
+
+### macOS Dependencies
 
 ```bash
 brew update
@@ -26,7 +31,7 @@ brew services start postgresql@14
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-### Ubuntu
+### Ubuntu Dependencies
 
 ```bash
 sudo apt-get update
@@ -99,6 +104,12 @@ mix compile
 
 ```bash
 mix do ecto.create, ecto.migrate
+```
+
+To wipe current database and start with a fresh instance run:
+
+```bash
+mix do ecto.drop, ecto.create, ecto.migrate
 ```
 
 ### Install Node.js dependencies
