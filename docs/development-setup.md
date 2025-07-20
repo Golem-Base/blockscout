@@ -1,4 +1,4 @@
-# Blockscout Backend Development Setup
+# How to run Blockscout backend for development
 
 This guide helps you set up a local Blockscout backend development environment without Docker
 
@@ -13,56 +13,43 @@ Choose your operating system:
 
 ```bash
 brew update
-brew install postgresql@14 node automake libtool gcc gmp nvm asdf
+brew install automake gcc gmp libtool mise node nvm postgresql@14 tesseract
 
-# Setup asdf
-echo 'export PATH=$PATH:$HOME/.asdf/shims' >> ~/.zshenv
-export PATH=$PATH:$HOME/.asdf/shims
+# Setup mise
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
 
-# Install Erlang, Elixir and NodeJS
-asdf plugin add erlang
-asdf plugin add elixir
-asdf plugin add nodejs
-
-# Start PostgreSQL 14
-brew services start postgresql@14
+# Setup PostgreSQL 14
+# When prompted for password, use 'l3explorer' to match the default .env-dev configuration
+createuser -dlP blockscout
 
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
+
+**Important:** Restart your shell for the changes to take effect.
 
 ### Ubuntu Dependencies
 
 ```bash
+# Install software dependencies
 sudo apt-get update
-sudo apt-get install inotify-tools && sudo apt install make && sudo apt install g++
-sudo apt-get install libudev-dev zip unzip build-essential cmake -y
-sudo apt-get install git automake libtool inotify-tools libgmp-dev libgmp10 build-essential cmake -y
+sudo apt-get -y install autoconf automake build-essential cmake curl fop git inotify-tools libgl1-mesa-dev libglu1-mesa-dev libgmp-dev libgmp10 libncurses-dev libpng-dev libssh-dev libtool libudev-dev libxml2-utils lsb-release m4 openjdk-11-jdk postgresql-common unixodbc-dev unzip xsltproc zip
 
-# Install asdf
-git clone https://github.com/asdf-vm/asdf.git ~/.asdf
-
-# Setup asdf
-echo '. ~/.asdf/asdf.sh' >> ~/.bashrc
-. ~/.asdf/asdf.sh
-
-# Install Erlang, Elixir and NodeJS
-asdf plugin add erlang
-asdf plugin add elixir
-asdf plugin add nodejs
-
-sudo apt-get -y install build-essential autoconf m4 libncurses5-dev libwxgtk3.0-gtk3-dev libwxgtk-webview3.0-gtk3-dev libgl1-mesa-dev libglu1-mesa-dev libpng-dev libssh-dev unixodbc-dev xsltproc fop libxml2-utils libncurses-dev openjdk-11-jdk
+# Install mise
+curl https://mise.run | sh
+echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
 
 # Install PostgreSQL 14
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc|sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-sudo apt update
-sudo apt install postgresql-14
-sudo systemctl status postgresql
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+sudo apt-get -y install postgresql-14
+# When prompted for password, use 'l3explorer' to match the default .env-dev configuration
+sudo -u postgres createuser -dlP blockscout
 
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
+
+**Important:** Restart your shell for the changes to take effect.
 
 ## Setup instructions
 
@@ -71,10 +58,11 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```bash
 git clone https://github.com/Golem-Base/blockscout.git blockscout-backend
 cd blockscout-backend
-asdf install
+# Install erlang, elixir and nodejs from .tool-versions
+mise install
 ```
 
-### Install Mix dependencies
+### Install and compile backend dependencies
 
 ```bash
 mix do deps.get, local.rebar --force, deps.compile
