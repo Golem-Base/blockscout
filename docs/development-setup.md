@@ -125,6 +125,17 @@ mix phx.gen.cert blockscout blockscout.local
 cd -
 ```
 
+### Edit `/etc/hosts`
+
+Add `blockscout` and `blockscout.local` as aliases to `localhost`
+
+```
+# Static table lookup for hostnames.
+# See hosts(5) for details.
+127.0.0.1        localhost blockscout blockscout.local
+::1              localhost blockscout blockscout.local
+```
+
 ## Run
 
 ```bash
