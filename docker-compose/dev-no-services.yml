@@ -39,6 +39,8 @@ services:
       - db:database
     env_file:
       -  ./envs/minimal-blockscout.env
+    ports:
+      - 4000:4000
 
   frontend:
     depends_on:
@@ -48,13 +50,7 @@ services:
       service: frontend
     environment:
       NEXT_PUBLIC_STATS_API_HOST:
-
-  proxy:
-    depends_on:
-      - backend
-      - frontend
-    extends:
-      file: ./services/nginx-explorer.yml
-      service: proxy
-    volumes:
-      - "./proxy/explorer.conf.template:/etc/nginx/templates/default.conf.template"
+    env_file:
+      -  ./envs/minimal-frontend.env
+    ports:
+      - 3000:3000
