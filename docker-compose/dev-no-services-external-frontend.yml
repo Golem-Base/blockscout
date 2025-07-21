@@ -39,12 +39,6 @@ services:
       - db:database
     env_file:
       -  ./envs/minimal-blockscout.env
+    ports:
+      - 4000:4000
 
-  proxy:
-    depends_on:
-      - backend
-    extends:
-      file: ./services/nginx-explorer.yml
-      service: proxy
-    volumes:
-      - "./proxy/explorer.conf.template:/etc/nginx/templates/default.conf.template"
