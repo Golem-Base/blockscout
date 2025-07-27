@@ -4,7 +4,7 @@ defmodule BlockScoutWeb.API.V2.SearchView do
 
   alias BlockScoutWeb.{BlockView, Endpoint}
   alias Explorer.Chain
-  alias Explorer.Chain.{Address, Beacon.Blob, Block, Hash, Transaction, UserOperation}
+  alias Explorer.Chain.{Address, Beacon.Blob, Block, GolemBase, Hash, Transaction, UserOperation}
   alias Plug.Conn.Query
 
   def render("search_results.json", %{search_results: search_results, next_page_params: next_page_params}) do
@@ -137,6 +137,13 @@ defmodule BlockScoutWeb.API.V2.SearchView do
     }
   end
 
+  def prepare_search_result(%{type: "golembase_entity"} = search_result) do
+    %{
+      "type" => search_result.type,
+      "golembase_entity" => hash_to_string(search_result.golembase_entity)
+    }
+  end
+
   def prepare_search_result(%{type: "blob"} = search_result) do
     %{
       "type" => search_result.type,
@@ -187,6 +194,10 @@ defmodule BlockScoutWeb.API.V2.SearchView do
 
   defp redirect_search_results(%UserOperation{} = item) do
     %{"type" => "user_operation", "parameter" => to_string(item.hash)}
+  end
+
+  defp redirect_search_results(%GolemBase.Entity{} = item) do
+    %{"type" => "golembase_entity", "parameter" => to_string(item.key)}
   end
 
   defp redirect_search_results(%Blob{} = item) do
