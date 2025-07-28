@@ -708,6 +708,7 @@ defmodule Explorer.Chain.Search do
     from(golembase_entity in GolemBase.Entity,
       as: :golembase_entity,
       where: golembase_entity.key == ^term,
+      where: golembase_entity.status == :active,
       select: ^golembase_entity_search_fields
     )
   end
