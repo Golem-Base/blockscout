@@ -799,3 +799,10 @@ jobs:
           SOURCIFY_INTEGRATION_ENABLED: "true"
           CHAIN_TYPE: ${{ matrix.chain-type != 'default' && matrix.chain-type || '' }}
           WETH_TOKEN_TRANSFERS_FILTERING_ENABLED: "true"
+      - name: Publish JUnit test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Elixir block_scout_web Tests
+          path: _build/test/junit/block_scout_web/*.xml
+          reporter: junit
