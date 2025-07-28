@@ -3,8 +3,6 @@ defmodule Explorer.Chain.GolemBase.Entity do
   The representation of a Golem Base entity
   """
 
-  require Logger
-
   import Ecto.Query
 
   use Explorer.Schema
@@ -26,7 +24,6 @@ defmodule Explorer.Chain.GolemBase.Entity do
   end
 
   def enabled? do
-    # TODO: Add environment variable to enable/disable Golem Base Indexer
-    true
+    Application.get_env(:explorer, __MODULE__)[:enabled]
   end
 end

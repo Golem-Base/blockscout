@@ -844,6 +844,9 @@ config :explorer, Explorer.Chain.Filecoin.NativeAddress,
 
 config :explorer, Explorer.Chain.Blackfort.Validator, api_url: System.get_env("BLACKFORT_VALIDATOR_API_URL")
 
+config :explorer, Explorer.Chain.GolemBase.Entity,
+  enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false")
+
 addresses_blacklist_url = ConfigHelper.parse_microservice_url("ADDRESSES_BLACKLIST_URL")
 
 config :explorer, Explorer.Chain.Fetcher.AddressesBlacklist,
