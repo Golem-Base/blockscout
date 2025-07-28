@@ -33,6 +33,7 @@ defmodule BlockScoutWeb.Chain do
     Beacon.Blob,
     Block,
     Block.Reward,
+    GolemBase,
     Hash,
     InternalTransaction,
     Log,
@@ -90,7 +91,8 @@ defmodule BlockScoutWeb.Chain do
   end
 
   @spec from_param(String.t()) ::
-          {:ok, Address.t() | Block.t() | Transaction.t() | UserOperation.t() | Blob.t()} | {:error, :not_found}
+          {:ok, Address.t() | Block.t() | Transaction.t() | UserOperation.t() | GolemBase.Entity | Blob.t()}
+          | {:error, :not_found}
   def from_param(param)
 
   def from_param("0x" <> number_string = param) when byte_size(number_string) == @address_hash_len,
@@ -929,6 +931,7 @@ defmodule BlockScoutWeb.Chain do
          {:error, :not_found} <- hash_to_transaction(hash),
          {:error, :not_found} <- hash_to_block(hash),
          {:error, :not_found} <- hash_to_user_operation(hash),
+         {:error, :not_found} <- hash_to_golembase_entity(hash),
          {:error, :not_found} <- hash_to_blob(hash) do
       {:error, :not_found}
     else
@@ -940,6 +943,14 @@ defmodule BlockScoutWeb.Chain do
   defp hash_to_user_operation(hash) do
     if UserOperation.enabled?() do
       UserOperation.hash_to_user_operation(hash)
+    else
+      {:error, :not_found}
+    end
+  end
+
+  defp hash_to_golembase_entity(hash) do
+    if GolemBase.Entity.enabled?() do
+      GolemBase.Entity.hash_to_golembase_entity(hash)
     else
       {:error, :not_found}
     end
