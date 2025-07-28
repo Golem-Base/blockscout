@@ -16,14 +16,16 @@ defmodule Explorer.Chain.GolemBase.Entity do
     field(:key, Hash.Full, primary_key: true, null: false)
     field(:status, Ecto.Enum, values: [:active, :deleted, :expired])
     field(:owner, :binary, null: false)
+    field(:last_updated_at_tx_hash, :binary, null: false)
+    field(:expires_at_block_number, :integer, null: false)
 
     timestamps()
   end
 
   def changeset(%__MODULE__{} = golembase_entity, attrs) do
     golembase_entity
-    |> cast(attrs, [:key, :status, :owner])
-    |> validate_required([:key, :status, :owner])
+    |> cast(attrs, [:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number])
+    |> validate_required([:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number])
   end
 
   @spec hash_to_golembase_entity(Hash.Full.t(), [api?]) ::
