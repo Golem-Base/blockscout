@@ -784,6 +784,7 @@ jobs:
           mix compile
           mix test --no-start --exclude no_nethermind
         env:
+          GOLEMBASE_ENABLED: "true"
           # match POSTGRES_PASSWORD for postgres image below
           PGPASSWORD: postgres
           # match POSTGRES_USER for postgres image below
