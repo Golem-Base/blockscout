@@ -33,7 +33,7 @@ defmodule BlockScoutWeb.Chain do
     Beacon.Blob,
     Block,
     Block.Reward,
-    GolemBase,
+    GolemBase.Entity,
     Hash,
     InternalTransaction,
     Log,
@@ -949,8 +949,8 @@ defmodule BlockScoutWeb.Chain do
   end
 
   defp hash_to_golembase_entity(hash) do
-    if GolemBase.Entity.enabled?() do
-      GolemBase.Entity.hash_to_golembase_entity(hash)
+    if Entity.enabled?() do
+      Entity.hash_to_golembase_entity(hash)
     else
       {:error, :not_found}
     end

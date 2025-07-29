@@ -22,7 +22,7 @@ defmodule Explorer.Chain.Search do
     Beacon.Blob,
     Block,
     DenormalizationHelper,
-    GolemBase,
+    GolemBase.Entity,
     Hash,
     SmartContract,
     Token,
@@ -193,7 +193,7 @@ defmodule Explorer.Chain.Search do
       |> union_all(^search_block_by_hash_query(full_hash))
 
     transaction_block_golembase_entity_query =
-      if GolemBase.Entity.enabled?() do
+      if Entity.enabled?() do
         golembase_entity_query = search_golembase_entity_query(full_hash)
 
         transaction_block_query
@@ -705,7 +705,7 @@ defmodule Explorer.Chain.Search do
       |> Map.put(:golembase_entity, dynamic([golembase_entity: golembase_entity], golembase_entity.key))
       |> Map.put(:type, "golembase_entity")
 
-    from(golembase_entity in GolemBase.Entity,
+    from(golembase_entity in Entity,
       as: :golembase_entity,
       where: golembase_entity.key == ^term,
       where: golembase_entity.status == :active,
