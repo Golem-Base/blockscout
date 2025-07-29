@@ -18,6 +18,10 @@ defmodule BlockScoutWeb.API.V2.StatsControllerTest do
     end
 
     test "get all fields", %{conn: conn} do
+      Mox.expect(EthereumJSONRPC.Mox, :json_rpc, fn
+        %{method: "eth_chainId"}, _opts -> {:ok, "0x1"}
+      end)
+
       request = get(conn, "/api/v2/stats")
       assert response = json_response(request, 200)
 
@@ -33,6 +37,7 @@ defmodule BlockScoutWeb.API.V2.StatsControllerTest do
       assert Map.has_key?(response, "static_gas_price")
       assert Map.has_key?(response, "market_cap")
       assert Map.has_key?(response, "network_utilization_percentage")
+      assert Map.has_key?(response, "chain_id")
     end
   end
 

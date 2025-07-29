@@ -799,3 +799,11 @@ jobs:
           SOURCIFY_INTEGRATION_ENABLED: "true"
           CHAIN_TYPE: ${{ matrix.chain-type != 'default' && matrix.chain-type || '' }}
           WETH_TOKEN_TRANSFERS_FILTERING_ENABLED: "true"
+      - name: Upload JUnit XML test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: block_scout_web-reports
+          path: _build/test/junit/block_scout_web/*.xml
+          if-no-files-found: ignore
+          retention-days: 3

@@ -5,7 +5,7 @@ defmodule BlockScoutWeb.API.V2.StatsController do
   alias BlockScoutWeb.API.V2.Helper
   alias BlockScoutWeb.Chain.MarketHistoryChartController
   alias Explorer.{Chain, Market}
-  alias Explorer.Chain.Cache.GasPriceOracle
+  alias Explorer.Chain.Cache.{ChainId, GasPriceOracle}
   alias Explorer.Chain.Cache.Counters.{AddressesCount, AverageBlockTime, BlocksCount, GasUsageSum, TransactionsCount}
   alias Explorer.Chain.Supply.RSK
   alias Explorer.Chain.Transaction.History.TransactionStats
@@ -76,7 +76,8 @@ defmodule BlockScoutWeb.API.V2.StatsController do
         "static_gas_price" => gas_price,
         "market_cap" => Helper.market_cap(market_cap_type, exchange_rate),
         "tvl" => exchange_rate.tvl,
-        "network_utilization_percentage" => network_utilization_percentage()
+        "network_utilization_percentage" => network_utilization_percentage(),
+        "chain_id" => get_chain_id()
       }
       |> add_chain_type_fields()
       |> backward_compatibility(conn)
@@ -172,6 +173,13 @@ defmodule BlockScoutWeb.API.V2.StatsController do
           gas_prices ->
             %{slow: gas_prices[:slow][:price], average: gas_prices[:average][:price], fast: gas_prices[:fast][:price]}
         end)
+    end
+  end
+
+  defp get_chain_id do
+    case ChainId.get_id() do
+      nil -> Application.get_env(:block_scout_web, :chain_id)
+      chain_id -> chain_id
     end
   end
 
