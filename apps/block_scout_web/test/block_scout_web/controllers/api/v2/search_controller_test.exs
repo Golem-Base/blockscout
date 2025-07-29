@@ -1,44 +1,50 @@
 defmodule BlockScoutWeb.API.V2.SearchControllerTest do
   use BlockScoutWeb.ConnCase
 
-  alias Explorer.Chain.{Address, Block}
+  alias Explorer.Chain.{Address, Block, GolemBase.Entity}
   alias Explorer.Tags.AddressTag
   alias Plug.Conn.Query
 
   describe "/search" do
     test "search golembase entity", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_active)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_active)
 
-      request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
-      assert response = json_response(request, 200)
+        request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
+        assert response = json_response(request, 200)
 
-      assert Enum.count(response["items"]) == 1
-      assert response["next_page_params"] == nil
+        assert Enum.count(response["items"]) == 1
+        assert response["next_page_params"] == nil
 
-      item = Enum.at(response["items"], 0)
+        item = Enum.at(response["items"], 0)
 
-      assert item["type"] == "golembase_entity"
-      assert item["golembase_entity"] == to_string(golembase_entity.key)
+        assert item["type"] == "golembase_entity"
+        assert item["golembase_entity"] == to_string(golembase_entity.key)
+      end
     end
 
     test "search golembase entity with status deleted", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_deleted)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_deleted)
 
-      request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
-      assert response = json_response(request, 200)
+        request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
+        assert response = json_response(request, 200)
 
-      assert Enum.count(response["items"]) == 0
-      assert response["next_page_params"] == nil
+        assert Enum.count(response["items"]) == 0
+        assert response["next_page_params"] == nil
+      end
     end
 
     test "search golembase entity with status expired", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_expired)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_expired)
 
-      request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
-      assert response = json_response(request, 200)
+        request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
+        assert response = json_response(request, 200)
 
-      assert Enum.count(response["items"]) == 0
-      assert response["next_page_params"] == nil
+        assert Enum.count(response["items"]) == 0
+        assert response["next_page_params"] == nil
+      end
     end
 
     test "search block", %{conn: conn} do
@@ -1760,28 +1766,34 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
 
   describe "/search/check-redirect" do
     test "search golembase entity", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_active)
-      hash = to_string(golembase_entity.key)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_active)
+        hash = to_string(golembase_entity.key)
 
-      request = get(conn, "/api/v2/search/check-redirect?q=#{golembase_entity.key}")
+        request = get(conn, "/api/v2/search/check-redirect?q=#{golembase_entity.key}")
 
-      assert %{"redirect" => true, "type" => "golembase_entity", "parameter" => ^hash} = json_response(request, 200)
+        assert %{"redirect" => true, "type" => "golembase_entity", "parameter" => ^hash} = json_response(request, 200)
+      end
     end
 
     test "search golembase entity with status deleted", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_deleted)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_deleted)
 
-      request = get(conn, "/api/v2/search/check-redirect?q=#{golembase_entity.key}")
+        request = get(conn, "/api/v2/search/check-redirect?q=#{golembase_entity.key}")
 
-      assert %{"redirect" => false, "type" => null, "parameter" => null} = json_response(request, 200)
+        assert %{"redirect" => false, "type" => null, "parameter" => null} = json_response(request, 200)
+      end
     end
 
     test "search golembase entity with status expired", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_expired)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_expired)
 
-      request = get(conn, "/api/v2/search/check-redirect?q=#{golembase_entity.key}")
+        request = get(conn, "/api/v2/search/check-redirect?q=#{golembase_entity.key}")
 
-      assert %{"redirect" => false, "type" => null, "parameter" => null} = json_response(request, 200)
+        assert %{"redirect" => false, "type" => null, "parameter" => null} = json_response(request, 200)
+      end
     end
 
     test "finds a consensus block by block number", %{conn: conn} do
@@ -1883,28 +1895,34 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
 
   describe "/search/quick" do
     test "search golembase entity", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_active)
-      hash = to_string(golembase_entity.key)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_active)
+        hash = to_string(golembase_entity.key)
 
-      request = get(conn, "/api/v2/search/quick?q=#{golembase_entity.key}")
+        request = get(conn, "/api/v2/search/quick?q=#{golembase_entity.key}")
 
-      assert [%{"golembase_entity" => ^hash, "type" => "golembase_entity"}] = json_response(request, 200)
+        assert [%{"golembase_entity" => ^hash, "type" => "golembase_entity"}] = json_response(request, 200)
+      end
     end
 
     test "search golembase entity with status deleted", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_deleted)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_deleted)
 
-      request = get(conn, "/api/v2/search/quick?q=#{golembase_entity.key}")
+        request = get(conn, "/api/v2/search/quick?q=#{golembase_entity.key}")
 
-      assert [] = json_response(request, 200)
+        assert [] = json_response(request, 200)
+      end
     end
 
     test "search golembase entity with status expired", %{conn: conn} do
-      golembase_entity = insert(:golembase_entity_expired)
+      if Entity.enabled?() do
+        golembase_entity = insert(:golembase_entity_expired)
 
-      request = get(conn, "/api/v2/search/quick?q=#{golembase_entity.key}")
+        request = get(conn, "/api/v2/search/quick?q=#{golembase_entity.key}")
 
-      assert [] = json_response(request, 200)
+        assert [] = json_response(request, 200)
+      end
     end
 
     test "check that all categories are in response list", %{conn: conn} do
