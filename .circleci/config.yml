@@ -224,7 +224,7 @@ jobs:
           paths:
             - plts
 
-      - run: mix dialyzer --halt-exit-status
+      - run: mix dialyzer
   eslint:
     docker:
       # Ensure .tool-versions matches

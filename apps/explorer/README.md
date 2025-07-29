@@ -26,7 +26,7 @@ To get BlockScout up and running locally:
 
 * Format the Elixir code: `$ mix format`
 * Lint the Elixir code: `$ mix credo --strict`
-* Run the dialyzer: `mix dialyzer --halt-exit-status`
+* Run the dialyzer: `mix dialyzer`
 * Check the Elixir code for vulnerabilities: `$ mix sobelow --config`
 
 ### Benchmarking
