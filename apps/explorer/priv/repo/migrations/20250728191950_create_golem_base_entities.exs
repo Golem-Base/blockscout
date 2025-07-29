@@ -1,10 +1,8 @@
 defmodule Explorer.Repo.Migrations.CreateGolemBaseEntities do
   use Ecto.Migration
 
-  @env Mix.env
-
   def up do
-    if @env == :test do
+    if Application.get_env(:explorer, :environment) == :test do
       # Create golem_base_entity_status_type enum type if it doesn't exist
       execute("""
       DO $$
@@ -32,7 +30,7 @@ defmodule Explorer.Repo.Migrations.CreateGolemBaseEntities do
   end
 
   def down do
-    if @env == :test do
+    if Application.get_env(:explorer, :environment) == :test do
       drop(table(:golem_base_entities))
 
       # Drop golem_base_entity_status_type enum if it exists

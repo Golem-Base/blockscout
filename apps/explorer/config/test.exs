@@ -105,3 +105,5 @@ config :explorer, Explorer.Chain.Fetcher.CheckBytecodeMatchingOnDemand, enabled:
 config :explorer, Explorer.Chain.Fetcher.FetchValidatorInfoOnDemand, enabled: false
 
 config :tesla, adapter: Explorer.Mock.TeslaAdapter
+
+config :explorer, :environment, :test
