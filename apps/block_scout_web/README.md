@@ -31,7 +31,7 @@ You can also run IEx (Interactive Elixir): `$ iex -S mix phx.server` (This can b
 * Build the assets: `cd assets && npm run build`
 * Format the Elixir code: `mix format`
 * Lint the Elixir code: `mix credo --strict`
-* Run the dialyzer: `mix dialyzer --halt-exit-status`
+* Run the dialyzer: `mix dialyzer`
 * Check the Elixir code for vulnerabilities: `mix sobelow --config`
 * Update translation templates and translations and check there are no uncommitted changes: `mix gettext.extract --merge`
 * Lint the JavaScript code: `cd assets && npm run eslint`

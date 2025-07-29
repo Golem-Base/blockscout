@@ -82,6 +82,8 @@
             transaction_hash: "0x" <> Base.encode16(@result.transaction_hash, case: :lower) %>
         <% "user_operation" -> %>
             <%= "0x" <> Base.encode16(@result.user_operation_hash, case: :lower) %>
+        <% "golembase_entity" -> %>
+            <%= "0x" <> Base.encode16(@result.golembase_entity, case: :lower) %>
         <% "blob" -> %>
             <%= "0x" <> Base.encode16(@result.blob_hash, case: :lower) %>
         <% "block" -> %>

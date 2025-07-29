@@ -51,3 +51,5 @@ config :logger, :token_instances,
   level: :debug,
   path: Path.absname("logs/dev/explorer/tokens/token_instances.log"),
   metadata_filter: [fetcher: :token_instances]
+
+config :explorer, :environment, :dev

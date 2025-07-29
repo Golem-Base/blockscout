@@ -35,6 +35,7 @@ defmodule Explorer.Factory do
     Block,
     ContractMethod,
     Data,
+    GolemBase,
     Hash,
     InternalTransaction,
     Log,
@@ -1404,6 +1405,36 @@ defmodule Explorer.Factory do
     %EventNotification{
       data: "test_data",
       inserted_at: DateTime.utc_now()
+    }
+  end
+
+  def golembase_entity_active_factory do
+    %GolemBase.Entity{
+      key: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      owner: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      status: "active",
+      last_updated_at_tx_hash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      expires_at_block_number: 999
+    }
+  end
+
+  def golembase_entity_deleted_factory do
+    %GolemBase.Entity{
+      key: "0x9999999999999999999999999999999999999999999999999999999999999999",
+      owner: "0x88888888888888888888888888888888",
+      status: "deleted",
+      last_updated_at_tx_hash: "0x7777777777777777777777777777777777777777777777777777777777777777",
+      expires_at_block_number: 100_000_000
+    }
+  end
+
+  def golembase_entity_expired_factory do
+    %GolemBase.Entity{
+      key: "0x6666666666666666666666666666666666666666666666666666666666666666",
+      owner: "0x55555555555555555555555555555555",
+      status: "expired",
+      last_updated_at_tx_hash: "0x4444444444444444444444444444444444444444444444444444444444444444",
+      expires_at_block_number: 1
     }
   end
 end

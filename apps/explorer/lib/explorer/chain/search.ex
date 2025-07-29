@@ -22,6 +22,7 @@ defmodule Explorer.Chain.Search do
     Beacon.Blob,
     Block,
     DenormalizationHelper,
+    GolemBase.Entity,
     Hash,
     SmartContract,
     Token,
@@ -191,14 +192,24 @@ defmodule Explorer.Chain.Search do
       |> search_transaction_query()
       |> union_all(^search_block_by_hash_query(full_hash))
 
+    transaction_block_golembase_entity_query =
+      if Entity.enabled?() do
+        golembase_entity_query = search_golembase_entity_query(full_hash)
+
+        transaction_block_query
+        |> union_all(^golembase_entity_query)
+      else
+        transaction_block_query
+      end
+
     transaction_block_op_query =
       if UserOperation.enabled?() do
         user_operation_query = search_user_operation_query(full_hash)
 
-        transaction_block_query
+        transaction_block_golembase_entity_query
         |> union_all(^user_operation_query)
       else
-        transaction_block_query
+        transaction_block_golembase_entity_query
       end
 
     result_query =
@@ -688,6 +699,20 @@ defmodule Explorer.Chain.Search do
     )
   end
 
+  defp search_golembase_entity_query(term) do
+    golembase_entity_search_fields =
+      search_fields()
+      |> Map.put(:golembase_entity, dynamic([golembase_entity: golembase_entity], golembase_entity.key))
+      |> Map.put(:type, "golembase_entity")
+
+    from(golembase_entity in Entity,
+      as: :golembase_entity,
+      where: golembase_entity.key == ^term,
+      where: golembase_entity.status == :active,
+      select: ^golembase_entity_search_fields
+    )
+  end
+
   defp search_blob_query(term) do
     blob_search_fields =
       search_fields()
@@ -1020,6 +1045,7 @@ defmodule Explorer.Chain.Search do
       user_operation_hash: dynamic(type(^nil, :binary)),
       blob_hash: dynamic(type(^nil, :binary)),
       block_hash: dynamic(type(^nil, :binary)),
+      golembase_entity: dynamic(type(^nil, :binary)),
       type: nil,
       name: nil,
       symbol: nil,
