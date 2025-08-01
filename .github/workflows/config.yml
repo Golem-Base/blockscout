@@ -4,22 +4,6 @@ on:
   push:
     branches:
       - master
-      - production-arbitrum
-      - production-core
-      - production-eth-sepolia
-      - production-filecoin
-      - production-fuse
-      - production-optimism
-      - production-immutable
-      - production-iota
-      - production-lukso
-      - production-rsk
-      - production-sokol
-      - production-suave
-      - production-xdai
-      - production-zkevm
-      - production-zksync
-      - staging-l2
     paths-ignore:
       - "CHANGELOG.md"
       - "**/README.md"
@@ -51,34 +35,17 @@ jobs:
             const defaultChainTypes = ["default"];
 
             const chainTypes = [
-              "arbitrum",
-              "blackfort",
-              "celo",
-              "ethereum",
-              "filecoin",
               "optimism",
-              "polygon_zkevm",
-              "rsk",
-              "scroll",
-              "shibarium",
-              "stability",
-              "zetachain",
-              "zilliqa",
-              "zksync",
-              "neon"
             ];
 
-            const extraChainTypes = ["suave", "polygon_edge"];
-
             // Chain type matrix we use in master branch
-            const allChainTypes = [].concat(defaultChainTypes, chainTypes, extraChainTypes);
+            const allChainTypes = [].concat(defaultChainTypes, chainTypes);
 
             const labels = ${{ github.event_name == 'pull_request' && toJson(github.event.pull_request.labels.*.name) || '[]' }};
             const ciLabels = labels.filter(label => label.startsWith("ci:"));
             const labeledChainTypes = [].concat(
               defaultChainTypes.filter(chainType => ciLabels.includes("ci:" + chainType)),
               chainTypes.filter(chainType => ciLabels.includes("ci:all") || ciLabels.includes("ci:" + chainType)),
-              extraChainTypes.filter(chainType => ciLabels.includes("ci:" + chainType))
             );
 
             // Chain type matrix we use in PRs to master branch
@@ -801,10 +768,9 @@ jobs:
           CHAIN_TYPE: ${{ matrix.chain-type != 'default' && matrix.chain-type || '' }}
           WETH_TOKEN_TRANSFERS_FILTERING_ENABLED: "true"
       - name: Upload JUnit XML test report
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: block_scout_web-reports
+          name: block_scout_web-reports-${{ matrix.chain_type }}
           path: _build/test/junit/block_scout_web/*.xml
           if-no-files-found: ignore
           retention-days: 3

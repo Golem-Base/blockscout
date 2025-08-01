@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - np-integrate-open-api-spex
     paths-ignore:
       - "CHANGELOG.md"
       - "**/README.md"
@@ -34,27 +33,11 @@ jobs:
             const defaultChainTypes = ["default"];
 
             const chainTypes = [
-              "arbitrum",
-              "blackfort",
-              "celo",
-              "ethereum",
-              "filecoin",
               "optimism",
-              "polygon_zkevm",
-              "rsk",
-              "scroll",
-              "shibarium",
-              "stability",
-              "zetachain",
-              "zilliqa",
-              "zksync",
-              "neon"
             ];
 
-            const extraChainTypes = ["suave", "polygon_edge"];
-
             // Chain type matrix we use in master branch
-            const allChainTypes = [].concat(defaultChainTypes, chainTypes, extraChainTypes);
+            const allChainTypes = [].concat(defaultChainTypes, chainTypes);
 
             const matrix = { "chain-type": ${{ 'allChainTypes' }} };
             console.log(JSON.stringify(matrix));
@@ -142,7 +125,7 @@ jobs:
           retention-days: 1
 
   push-specs:
-    needs: 
+    needs:
       - generate-swagger
       - matrix-builder
     runs-on: ubuntu-latest
@@ -186,13 +169,12 @@ jobs:
             fi
           done
 
-
       - name: Commit and push changes
         working-directory: api-specs
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
+
           git add .
 
           # Only commit if there are changes
