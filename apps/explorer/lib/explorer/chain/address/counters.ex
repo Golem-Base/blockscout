@@ -20,6 +20,7 @@ defmodule Explorer.Chain.Address.Counters do
     Address,
     Address.CurrentTokenBalance,
     Block,
+    GolemBase.Operation,
     Hash,
     InternalTransaction,
     Log,
@@ -35,7 +36,16 @@ defmodule Explorer.Chain.Address.Counters do
   @typep counter :: non_neg_integer() | nil
 
   @counters_limit 51
-  @types [:validations, :transactions, :token_transfers, :token_balances, :logs, :withdrawals, :internal_transactions]
+  @types [
+    :validations,
+    :transactions,
+    :token_transfers,
+    :token_balances,
+    :logs,
+    :withdrawals,
+    :internal_transactions,
+    :golembase_operations
+  ]
   @transactions_types [:transactions_from, :transactions_to, :transactions_contract]
 
   defp address_hash_to_logs_query(address_hash) do
@@ -168,6 +178,19 @@ defmodule Explorer.Chain.Address.Counters do
       tb in CurrentTokenBalance,
       where: tb.address_hash == ^address_hash,
       where: tb.value > 0
+    )
+  end
+
+  def address_to_golembase_operations_count(address) do
+    query = address_hash_to_golembase_operations_count_query(address.hash)
+
+    Repo.aggregate(query, :count, timeout: :infinity)
+  end
+
+  def address_hash_to_golembase_operations_count_query(address_hash) do
+    from(
+      op in Operation,
+      where: op.sender == ^address_hash
     )
   end
 
@@ -448,6 +471,19 @@ defmodule Explorer.Chain.Address.Counters do
         nil
       end
 
+    golembase_operations_count_task =
+      if Operation.enabled?() do
+        configure_task(
+          :golembase_operations,
+          cached_counters,
+          address_hash_to_golembase_operations_count_query(address_hash),
+          address_hash,
+          options
+        )
+      else
+        nil
+      end
+
     map =
       [
         validations_count_task,
@@ -459,7 +495,8 @@ defmodule Explorer.Chain.Address.Counters do
         logs_count_task,
         withdrawals_count_task,
         internal_transactions_count_task,
-        celo_election_rewards_count_task
+        celo_election_rewards_count_task,
+        golembase_operations_count_task
       ]
       |> Enum.reject(&is_nil/1)
       |> Task.yield_many(:timer.seconds(1))

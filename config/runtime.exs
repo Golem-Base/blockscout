@@ -847,6 +847,9 @@ config :explorer, Explorer.Chain.Blackfort.Validator, api_url: System.get_env("B
 config :explorer, Explorer.Chain.GolemBase.Entity,
   enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false")
 
+config :explorer, Explorer.Chain.GolemBase.Operation,
+  enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false")
+
 addresses_blacklist_url = ConfigHelper.parse_microservice_url("ADDRESSES_BLACKLIST_URL")
 
 config :explorer, Explorer.Chain.Fetcher.AddressesBlacklist,
