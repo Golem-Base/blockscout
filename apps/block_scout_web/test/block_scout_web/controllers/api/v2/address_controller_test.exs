@@ -11,6 +11,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
     Address,
     Address.CoinBalance,
     Block,
+    GolemBase.Operation,
     InternalTransaction,
     Log,
     Token,
@@ -3623,15 +3624,24 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
       request = get(conn, "/api/v2/addresses/#{address.hash}/tabs-counters")
       response = json_response(request, 200)
 
-      assert %{
-               "validations_count" => 0,
-               "transactions_count" => 0,
-               "token_transfers_count" => 0,
-               "token_balances_count" => 0,
-               "logs_count" => 0,
-               "withdrawals_count" => 0,
-               "internal_transactions_count" => 0
-             } = response
+      expected = %{
+        "validations_count" => 0,
+        "transactions_count" => 0,
+        "token_transfers_count" => 0,
+        "token_balances_count" => 0,
+        "logs_count" => 0,
+        "withdrawals_count" => 0,
+        "internal_transactions_count" => 0
+      }
+
+      expected =
+        if Operation.enabled?() do
+          Map.put(expected, "golembase_operations_count", 0)
+        else
+          expected
+        end
+
+      assert expected == response
 
       assert_schema(response, "AddressTabsCounters", BlockScoutWeb.ApiSpec.spec())
     end
@@ -3695,18 +3705,36 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
         )
       end
 
+      if Operation.enabled?() do
+        for _ <- 1..10 do
+          insert(:golembase_operation,
+            sender: address.hash
+          )
+        end
+      end
+
       request = get(conn, "/api/v2/addresses/#{address.hash}/tabs-counters")
       response = json_response(request, 200)
 
-      assert %{
-               "validations_count" => 1,
-               "transactions_count" => 2,
-               "token_transfers_count" => 2,
-               "token_balances_count" => 51,
-               "logs_count" => 51,
-               "withdrawals_count" => 51,
-               "internal_transactions_count" => 2
-             } = response
+      expected =
+        %{
+          "validations_count" => 1,
+          "transactions_count" => 2,
+          "token_transfers_count" => 2,
+          "token_balances_count" => 51,
+          "logs_count" => 51,
+          "withdrawals_count" => 51,
+          "internal_transactions_count" => 2
+        }
+
+      expected =
+        if Operation.enabled?() do
+          Map.put(expected, "golembase_operations_count", 10)
+        else
+          expected
+        end
+
+      assert expected == response
 
       assert_schema(response, "AddressTabsCounters", BlockScoutWeb.ApiSpec.spec())
 
@@ -3725,15 +3753,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
       request = get(conn, "/api/v2/addresses/#{address.hash}/tabs-counters")
       response = json_response(request, 200)
 
-      assert %{
-               "validations_count" => 1,
-               "transactions_count" => 2,
-               "token_transfers_count" => 2,
-               "token_balances_count" => 51,
-               "logs_count" => 51,
-               "withdrawals_count" => 51,
-               "internal_transactions_count" => 2
-             } = response
+      assert expected == response
 
       assert_schema(response, "AddressTabsCounters", BlockScoutWeb.ApiSpec.spec())
     end
@@ -3797,18 +3817,35 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
         )
       end
 
+      if Operation.enabled?() do
+        for _ <- 1..25 do
+          insert(:golembase_operation,
+            sender: address.hash
+          )
+        end
+      end
+
       request = get(conn, "/api/v2/addresses/#{address.hash}/tabs-counters")
       response = json_response(request, 200)
 
-      assert %{
-               "validations_count" => 1,
-               "transactions_count" => 2,
-               "token_transfers_count" => 2,
-               "token_balances_count" => 51,
-               "logs_count" => 51,
-               "withdrawals_count" => 51,
-               "internal_transactions_count" => 2
-             } = response
+      expected = %{
+        "validations_count" => 1,
+        "transactions_count" => 2,
+        "token_transfers_count" => 2,
+        "token_balances_count" => 51,
+        "logs_count" => 51,
+        "withdrawals_count" => 51,
+        "internal_transactions_count" => 2
+      }
+
+      expected =
+        if Operation.enabled?() do
+          Map.put(expected, "golembase_operations_count", 25)
+        else
+          expected
+        end
+
+      assert expected == response
 
       assert_schema(response, "AddressTabsCounters", BlockScoutWeb.ApiSpec.spec())
 
@@ -3831,18 +3868,35 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
       insert(:transaction, from_address: address) |> with_block()
       insert(:transaction, to_address: address) |> with_block()
 
+      if Operation.enabled?() do
+        for _ <- 1..30 do
+          insert(:golembase_operation,
+            sender: address.hash
+          )
+        end
+      end
+
       request = get(conn, "/api/v2/addresses/#{address.hash}/tabs-counters")
       response = json_response(request, 200)
 
-      assert %{
-               "validations_count" => 1,
-               "transactions_count" => 4,
-               "token_transfers_count" => 2,
-               "token_balances_count" => 51,
-               "logs_count" => 51,
-               "withdrawals_count" => 51,
-               "internal_transactions_count" => 4
-             } = response
+      expected = %{
+        "validations_count" => 1,
+        "transactions_count" => 4,
+        "token_transfers_count" => 2,
+        "token_balances_count" => 51,
+        "logs_count" => 51,
+        "withdrawals_count" => 51,
+        "internal_transactions_count" => 4
+      }
+
+      expected =
+        if Operation.enabled?() do
+          Map.put(expected, "golembase_operations_count", 51)
+        else
+          expected
+        end
+
+      assert expected == response
 
       assert_schema(response, "AddressTabsCounters", BlockScoutWeb.ApiSpec.spec())
 

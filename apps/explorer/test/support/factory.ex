@@ -1437,4 +1437,31 @@ defmodule Explorer.Factory do
       expires_at_block_number: 1
     }
   end
+
+  def golembase_operation_factory do
+    operation = Enum.random(["create", "update", "delete", "extend"])
+
+    {data, btl} =
+      case operation do
+        "create" -> {:crypto.strong_rand_bytes(64), Enum.random(0..100_000)}
+        "update" -> {:crypto.strong_rand_bytes(64), Enum.random(0..100_000)}
+        "delete" -> {nil, nil}
+        "extend" -> {nil, Enum.random(0..100_000)}
+      end
+
+    %GolemBase.Operation{
+      entity_key:
+        sequence(:entity_key, fn n ->
+          "0x" <> String.pad_leading(Integer.to_string(n, 16), 64, "0")
+        end),
+      sender: to_string(build(:address)),
+      recipient: to_string(build(:address)),
+      operation: operation,
+      data: data,
+      btl: btl,
+      block_hash: block_hash(),
+      transaction_hash: transaction_hash(),
+      index: sequence(:index, &"#{&1}")
+    }
+  end
 end
