@@ -3592,7 +3592,8 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
                "logs_count" => 0,
                "withdrawals_count" => 0,
                "internal_transactions_count" => 0,
-               "celo_election_rewards_count" => 0
+               "celo_election_rewards_count" => 0,
+               "golembase_operations_count" => 0
              } = response
 
       assert_schema(response, "AddressTabsCounters", BlockScoutWeb.ApiSpec.spec())
