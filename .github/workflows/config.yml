@@ -770,7 +770,7 @@ jobs:
       - name: Upload JUnit XML test report
         uses: actions/upload-artifact@v4
         with:
-          name: block_scout_web-reports-${{ matrix.chain_type }}
+          name: block_scout_web-reports-${{ matrix.chain-type }}
           path: _build/test/junit/block_scout_web/*.xml
           if-no-files-found: ignore
           retention-days: 3
