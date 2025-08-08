@@ -225,7 +225,8 @@ defmodule BlockScoutWeb.API.V2.AddressController do
     with {:ok, address_hash} <- validate_address_hash(address_hash_string, params) do
       case Chain.hash_to_address(address_hash, @address_options) do
         {:ok, address} ->
-          {validation_count, transactions_count, token_transfers_count, gas_usage_count} = Counters.address_counters(address, @api_true)
+          {validation_count, transactions_count, token_transfers_count, gas_usage_count} =
+            Counters.address_counters(address, @api_true)
 
           json(conn, %{
             transactions_count: to_string(transactions_count),

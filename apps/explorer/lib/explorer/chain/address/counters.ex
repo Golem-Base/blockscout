@@ -273,18 +273,18 @@ defmodule Explorer.Chain.Address.Counters do
 
     transaction_count_task =
       Task.async(fn ->
-      transaction_count(address)
-    end)
+        transaction_count(address)
+      end)
 
     token_transfers_count_task =
-    Task.async(fn ->
-      token_transfers_count(address)
-    end)
+      Task.async(fn ->
+        token_transfers_count(address)
+      end)
 
     gas_usage_count_task =
-    Task.async(fn ->
-      gas_usage_count(address)
-    end)
+      Task.async(fn ->
+        gas_usage_count(address)
+      end)
 
     [
       validation_count_task,
