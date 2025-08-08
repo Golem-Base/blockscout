@@ -286,7 +286,7 @@ defmodule Explorer.Chain.Address.Counters do
       gas_usage_count(address)
     end)
 
-    out = [
+    [
       validation_count_task,
       transaction_count_task,
       token_transfers_count_task,
