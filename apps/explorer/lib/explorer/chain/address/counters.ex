@@ -271,20 +271,26 @@ defmodule Explorer.Chain.Address.Counters do
         address_to_validation_count(address.hash, options)
       end)
 
-    Task.start_link(fn ->
-      transaction_count(address)
-    end)
+    transaction_count_task =
+      Task.async(fn ->
+        transaction_count(address)
+      end)
 
-    Task.start_link(fn ->
-      token_transfers_count(address)
-    end)
+    token_transfers_count_task =
+      Task.async(fn ->
+        token_transfers_count(address)
+      end)
 
-    Task.start_link(fn ->
-      gas_usage_count(address)
-    end)
+    gas_usage_count_task =
+      Task.async(fn ->
+        gas_usage_count(address)
+      end)
 
     [
-      validation_count_task
+      validation_count_task,
+      transaction_count_task,
+      token_transfers_count_task,
+      gas_usage_count_task
     ]
     |> Task.yield_many(:infinity)
     |> Enum.map(fn {_task, res} ->
