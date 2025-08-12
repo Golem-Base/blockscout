@@ -177,7 +177,7 @@ defmodule BlockScoutWeb.AddressController do
   def address_counters(conn, %{"id" => address_hash_string}) do
     with {:ok, address_hash} <- Chain.string_to_address_hash(address_hash_string),
          {:ok, address} <- Chain.hash_to_address(address_hash) do
-      {validation_count, transactions_count, token_transfers_count, gas_usage_count} =
+      {validation_count, transactions_count, token_transfers_count, gas_usage_count, amount_spent_count} =
         Counters.address_counters(address)
 
       gas_usage_count =
@@ -186,11 +186,18 @@ defmodule BlockScoutWeb.AddressController do
           _ -> Decimal.to_integer(gas_usage_count)
         end
 
+      amount_spent_count =
+        case amount_spent_count do
+          nil -> 0
+          _ -> Decimal.to_integer(amount_spent_count)
+        end
+
       json(conn, %{
         transaction_count: transactions_count || 0,
         token_transfer_count: token_transfers_count || 0,
         gas_usage_count: gas_usage_count,
-        validation_count: validation_count
+        validation_count: validation_count,
+        amount_spent_count: amount_spent_count
       })
     else
       _ ->
@@ -198,7 +205,8 @@ defmodule BlockScoutWeb.AddressController do
           transaction_count: 0,
           token_transfer_count: 0,
           gas_usage_count: 0,
-          validation_count: 0
+          validation_count: 0,
+          amount_spent_count: 0
         })
     end
   end

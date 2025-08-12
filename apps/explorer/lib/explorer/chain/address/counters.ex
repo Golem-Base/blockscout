@@ -286,11 +286,14 @@ defmodule Explorer.Chain.Address.Counters do
         gas_usage_count(address)
       end)
 
+    amount_spent_task = Task.async(fn -> amount_spent_count(address) end)
+
     [
       validation_count_task,
       transaction_count_task,
       token_transfers_count_task,
-      gas_usage_count_task
+      gas_usage_count_task,
+      amount_spent_task
     ]
     |> Task.yield_many(:infinity)
     |> Enum.map(fn {_task, res} ->
@@ -318,6 +321,16 @@ defmodule Explorer.Chain.Address.Counters do
 
   def gas_usage_count(address) do
     AddressTransactionsGasUsageSum.fetch(address)
+  end
+
+  def amount_spent_count(address) do
+    query =
+      from(tx in Transaction,
+        where: tx.from_address_hash == ^address.hash,
+        select: fragment("SUM(? * ?)", tx.gas_price, tx.gas_used)
+      )
+
+    Repo.one(query)
   end
 
   @spec address_limited_counters(Hash.t(), Keyword.t()) :: %{atom() => counter}
