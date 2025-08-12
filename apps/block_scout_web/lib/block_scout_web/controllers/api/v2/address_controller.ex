@@ -233,7 +233,7 @@ defmodule BlockScoutWeb.API.V2.AddressController do
             token_transfers_count: to_string(token_transfers_count || 0),
             gas_usage_count: to_string(gas_usage_count || 0),
             validations_count: to_string(validation_count),
-            amount_spent_count: to_string(amount_spent_count)
+            amount_spent_count: to_string(amount_spent_count || 0)
           })
 
         _ ->
