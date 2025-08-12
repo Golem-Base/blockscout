@@ -14,8 +14,9 @@ defmodule BlockScoutWeb.Schemas.API.V2.Address.Counters do
       transactions_count: General.IntegerString,
       token_transfers_count: General.IntegerString,
       gas_usage_count: General.IntegerString,
-      validations_count: General.IntegerString
+      validations_count: General.IntegerString,
+      amount_spent_count: General.IntegerString
     },
-    required: [:transactions_count, :token_transfers_count, :gas_usage_count, :validations_count]
+    required: [:transactions_count, :token_transfers_count, :gas_usage_count, :validations_count, :amount_spent_count]
   })
 end
