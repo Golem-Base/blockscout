@@ -558,7 +558,8 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
                "transactions_count" => "0",
                "token_transfers_count" => "0",
                "gas_usage_count" => "0",
-               "validations_count" => "0"
+               "validations_count" => "0",
+               "amount_spent_count" => "0"
              } = json_response
 
       assert_schema(json_response, "AddressCounters", BlockScoutWeb.ApiSpec.spec())
@@ -593,7 +594,8 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
                "transactions_count" => "0",
                "token_transfers_count" => "0",
                "gas_usage_count" => "0",
-               "validations_count" => "0"
+               "validations_count" => "0",
+               "amount_spent_count" => "0"
              } = json_response
 
       assert_schema(json_response, "AddressCounters", BlockScoutWeb.ApiSpec.spec())
@@ -629,12 +631,14 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
       request = get(conn, "/api/v2/addresses/#{address.hash}/counters")
       json_response = json_response(request, 200)
       gas_used = to_string(transaction_from.gas_used)
+      amount_spent = to_string(Wei.mult(transaction_from.gas_price, transaction_from.gas_used).value)
 
       assert %{
                "transactions_count" => "2",
                "token_transfers_count" => "2",
                "gas_usage_count" => ^gas_used,
-               "validations_count" => "1"
+               "validations_count" => "1",
+               "amount_spent_count" => ^amount_spent
              } = json_response
 
       assert_schema(json_response, "AddressCounters", BlockScoutWeb.ApiSpec.spec())
