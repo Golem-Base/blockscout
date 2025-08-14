@@ -30,7 +30,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
         request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
         assert response = json_response(request, 200)
 
-        assert Enum.count(response["items"]) == 0
+        assert Enum.count(response["items"]) == 1
         assert response["next_page_params"] == nil
       end
     end
@@ -42,7 +42,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
         request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
         assert response = json_response(request, 200)
 
-        assert Enum.count(response["items"]) == 0
+        assert Enum.count(response["items"]) == 1
         assert response["next_page_params"] == nil
       end
     end
@@ -1908,20 +1908,22 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
     test "search golembase entity with status deleted", %{conn: conn} do
       if Entity.enabled?() do
         golembase_entity = insert(:golembase_entity_deleted)
+        hash = to_string(golembase_entity.key)
 
         request = get(conn, "/api/v2/search/quick?q=#{golembase_entity.key}")
 
-        assert [] = json_response(request, 200)
+        assert [%{"golembase_entity" => ^hash, "type" => "golembase_entity"}] = json_response(request, 200)
       end
     end
 
     test "search golembase entity with status expired", %{conn: conn} do
       if Entity.enabled?() do
         golembase_entity = insert(:golembase_entity_expired)
+        hash = to_string(golembase_entity.key)
 
         request = get(conn, "/api/v2/search/quick?q=#{golembase_entity.key}")
 
-        assert [] = json_response(request, 200)
+        assert [%{"golembase_entity" => ^hash, "type" => "golembase_entity"}] = json_response(request, 200)
       end
     end
 
