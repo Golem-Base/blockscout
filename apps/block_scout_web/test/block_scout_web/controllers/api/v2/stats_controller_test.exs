@@ -38,6 +38,8 @@ defmodule BlockScoutWeb.API.V2.StatsControllerTest do
       assert Map.has_key?(response, "market_cap")
       assert Map.has_key?(response, "network_utilization_percentage")
       assert Map.has_key?(response, "chain_id")
+      assert Map.has_key?(response, "golembase_total_size")
+      assert Map.has_key?(response, "golembase_active_entities_count")
     end
   end
 

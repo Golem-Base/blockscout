@@ -6,6 +6,7 @@ defmodule Explorer.Chain.GolemBase.Entity do
   import Ecto.Query, only: [where: 2]
 
   use Explorer.Schema
+  alias Explorer.Repo
   alias Explorer.Chain
   alias Explorer.Chain.Hash
 
@@ -14,6 +15,7 @@ defmodule Explorer.Chain.GolemBase.Entity do
   @primary_key false
   typed_schema "golem_base_entities" do
     field(:key, Hash.Full, primary_key: true, null: false)
+    field(:data, :binary)
     field(:status, Ecto.Enum, values: [:active, :deleted, :expired])
     field(:owner, :binary, null: false)
     field(:last_updated_at_tx_hash, :binary, null: false)
@@ -24,7 +26,7 @@ defmodule Explorer.Chain.GolemBase.Entity do
 
   def changeset(%__MODULE__{} = golembase_entity, attrs) do
     golembase_entity
-    |> cast(attrs, [:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number])
+    |> cast(attrs, [:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number, :data])
     |> validate_required([:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number])
   end
 
@@ -47,5 +49,20 @@ defmodule Explorer.Chain.GolemBase.Entity do
 
   def enabled? do
     Application.get_env(:explorer, __MODULE__)[:enabled]
+  end
+
+  def total_size do
+    query =
+      from(entity in __MODULE__,
+        select: fragment("SUM(LENGTH(?))", entity.data)
+      )
+
+    Repo.one(query)
+  end
+
+  def active_entities_count do
+    query = from(entity in __MODULE__, where: entity.status == :active, select: count())
+
+    Repo.one(query)
   end
 end
