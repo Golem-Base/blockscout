@@ -24,8 +24,4 @@ defmodule Explorer.Chain.GolemBase.Operation do
     |> cast(attrs, [:entity_key, :sender, :recipient, :operation, :block_hash, :transaction_hash, :index, :data, :btl])
     |> validate_required([:entity_key, :sender, :recipient, :operation, :block_hash, :transaction_hash, :index])
   end
-
-  def enabled? do
-    Application.get_env(:explorer, __MODULE__)[:enabled]
-  end
 end

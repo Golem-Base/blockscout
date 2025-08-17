@@ -3,12 +3,10 @@ defmodule Explorer.Chain.GolemBase.Entity do
   The representation of a Golem Base entity
   """
 
-  import Ecto.Query, only: [where: 2]
+  import Ecto.Query, only: [where: 2, from: 2]
 
   use Explorer.Schema
-  alias Explorer.Repo
-  alias Explorer.Chain
-  alias Explorer.Chain.Hash
+  alias Explorer.{Chain, Chain.Hash, Repo}
 
   @type api? :: {:api?, true | false}
 
@@ -45,10 +43,6 @@ defmodule Explorer.Chain.GolemBase.Entity do
       golembase_entity ->
         {:ok, golembase_entity}
     end
-  end
-
-  def enabled? do
-    Application.get_env(:explorer, __MODULE__)[:enabled]
   end
 
   def total_size do
