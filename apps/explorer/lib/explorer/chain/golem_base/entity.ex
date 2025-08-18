@@ -1,6 +1,6 @@
 defmodule Explorer.Chain.GolemBase.Entity do
   @moduledoc """
-  The representation of a Golem Base entity
+  The representation of a Golem Base entity.
   """
 
   import Ecto.Query, only: [where: 2, from: 2]
@@ -22,12 +22,22 @@ defmodule Explorer.Chain.GolemBase.Entity do
     timestamps()
   end
 
+  @doc """
+  Creates a changeset for a Golem Base entity.
+
+  Validates that required fields are present and casts the provided attributes.
+  """
   def changeset(%__MODULE__{} = golembase_entity, attrs) do
     golembase_entity
     |> cast(attrs, [:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number, :data])
     |> validate_required([:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number])
   end
 
+  @doc """
+  Retrieves an active Golem Base entity by its hash key.
+
+  Only returns entities with `:active` status.
+  """
   @spec hash_to_golembase_entity(Hash.Full.t(), [api?]) ::
           {:ok, __MODULE__.t()} | {:error, :not_found}
   def hash_to_golembase_entity(%Hash{byte_count: unquote(Hash.Full.byte_count())} = hash, options \\ [])
@@ -45,7 +55,12 @@ defmodule Explorer.Chain.GolemBase.Entity do
     end
   end
 
-  def total_size do
+  @doc """
+  Calculates the total size in bytes of all active entity data.
+
+  Sums the length of the `data` field for all entities with `:active` status.
+  """
+  def active_entities_bytes do
     query =
       from(entity in __MODULE__,
         select: fragment("SUM(LENGTH(?))", entity.data)
@@ -54,6 +69,11 @@ defmodule Explorer.Chain.GolemBase.Entity do
     Repo.one(query)
   end
 
+  @doc """
+  Returns the count of active entities.
+
+  Counts all entities with `:active` status.
+  """
   def active_entities_count do
     query = from(entity in __MODULE__, where: entity.status == :active, select: count())
 
