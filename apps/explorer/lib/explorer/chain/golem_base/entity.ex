@@ -63,6 +63,7 @@ defmodule Explorer.Chain.GolemBase.Entity do
   def active_entities_bytes do
     query =
       from(entity in __MODULE__,
+        where: entity.status == :active,
         select: fragment("SUM(LENGTH(?))", entity.data)
       )
 
