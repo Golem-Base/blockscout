@@ -9,4 +9,11 @@ defmodule Explorer.Chain.GolemBase do
   def enabled? do
     Application.get_env(:explorer, __MODULE__)[:enabled]
   end
+
+  @doc """
+  Helper function to return DB-Chain storage limit in bytes.
+  """
+  def storage_limit do
+    Application.get_env(:explorer, __MODULE__)[:storage_limit]
+  end
 end

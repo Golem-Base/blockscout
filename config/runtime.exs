@@ -887,7 +887,10 @@ config :explorer, Explorer.Chain.Scroll.L1FeeParam,
   l1_blob_base_fee_init: ConfigHelper.parse_integer_env_var("SCROLL_L1_BLOB_BASE_FEE_INIT", 0)
 
 # GolemBase settings
-config :explorer, Explorer.Chain.GolemBase, enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false")
+config :explorer, Explorer.Chain.GolemBase,
+  enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false"),
+  # DB-Chain storage limit in bytes, defaults to 1TB
+  storage_limit: ConfigHelper.parse_integer_env_var("GOLEMBASE_STORAGE_LIMIT", 1_099_511_627_776)
 
 ###############
 ### Indexer ###
