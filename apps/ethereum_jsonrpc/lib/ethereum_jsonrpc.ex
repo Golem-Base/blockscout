@@ -484,6 +484,31 @@ defmodule EthereumJSONRPC do
   end
 
   @doc """
+    Fetches Golem Base total number of storage slots currently being used from RPC node
+    using `golembase_getNumberOfUsedSlots` JSON-RPC request.
+
+    ## Parameters
+    - `json_rpc_named_arguments`: A keyword list of JSON-RPC configuration options.
+
+    ## Returns
+    - `{:ok, count}` tuple where `count` is the number of slots integer.
+    - `{:error, reason}` tuple in case of error.
+  """
+  @spec fetch_golembase_number_of_used_slots(json_rpc_named_arguments) ::
+          {:ok, non_neg_integer()} | {:error, reason :: term}
+  def fetch_golembase_number_of_used_slots(json_rpc_named_arguments) do
+    result =
+      %{id: 0, method: "golembase_getNumberOfUsedSlots", params: []}
+      |> request()
+      |> json_rpc(json_rpc_named_arguments)
+
+    case result do
+      {:ok, count} -> {:ok, quantity_to_integer(count)}
+      other -> other
+    end
+  end
+
+  @doc """
   Retrieves Solana transactions that are linked to a given Neon transaction.
 
   ## Parameters
