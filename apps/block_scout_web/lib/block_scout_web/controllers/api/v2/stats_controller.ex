@@ -5,8 +5,9 @@ defmodule BlockScoutWeb.API.V2.StatsController do
   alias BlockScoutWeb.API.V2.Helper
   alias BlockScoutWeb.Chain.MarketHistoryChartController
   alias Explorer.{Chain, Market}
-  alias Explorer.Chain.Cache.{ChainId, GasPriceOracle, GolemBase}
+  alias Explorer.Chain.Cache.{ChainId, GasPriceOracle, GolemBase.UsedSlots}
   alias Explorer.Chain.Cache.Counters.{AddressesCount, AverageBlockTime, BlocksCount, GasUsageSum, TransactionsCount}
+  alias Explorer.Chain.GolemBase
   alias Explorer.Chain.GolemBase.Entity
   alias Explorer.Chain.Supply.RSK
   alias Explorer.Chain.Transaction.History.TransactionStats
@@ -79,9 +80,10 @@ defmodule BlockScoutWeb.API.V2.StatsController do
         "tvl" => exchange_rate.tvl,
         "network_utilization_percentage" => network_utilization_percentage(),
         "chain_id" => get_chain_id(),
+        "golembase_storage_limit" => get_golembase_storage_limit(),
+        "golembase_used_slots" => get_golembase_used_slots(),
         "golembase_active_entities_size" => get_golembase_active_entities_size(),
-        "golembase_active_entities_count" => get_golembase_active_entities_count(),
-        "golembase_used_slots" => get_golembase_used_slots()
+        "golembase_active_entities_count" => get_golembase_active_entities_count()
       }
       |> add_chain_type_fields()
       |> backward_compatibility(conn)
@@ -187,16 +189,20 @@ defmodule BlockScoutWeb.API.V2.StatsController do
     end
   end
 
+  defp get_golembase_storage_limit do
+    GolemBase.storage_limit()
+  end
+
+  defp get_golembase_used_slots do
+    UsedSlots.get_used_slots()
+  end
+
   defp get_golembase_active_entities_size do
     Entity.active_entities_bytes()
   end
 
   defp get_golembase_active_entities_count do
     Entity.active_entities_count()
-  end
-
-  defp get_golembase_used_slots do
-    GolemBase.get_number_of_used_slots()
   end
 
   case @chain_type do
