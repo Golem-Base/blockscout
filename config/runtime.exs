@@ -890,7 +890,9 @@ config :explorer, Explorer.Chain.Scroll.L1FeeParam,
 config :explorer, Explorer.Chain.GolemBase,
   enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false"),
   # DB-Chain storage limit in bytes, defaults to 1TB
-  storage_limit: ConfigHelper.parse_integer_env_var("GOLEMBASE_STORAGE_LIMIT", 1_099_511_627_776)
+  storage_limit: ConfigHelper.parse_integer_env_var("GOLEMBASE_STORAGE_LIMIT", 1_099_511_627_776),
+  # Cache TTL for Used Slots, defaults to 1 minute
+  cache_ttl_used_slots: ConfigHelper.parse_time_env_var("GOLEMBASE_CACHE_TTL_USED_SLOTS", "1m")
 
 ###############
 ### Indexer ###
