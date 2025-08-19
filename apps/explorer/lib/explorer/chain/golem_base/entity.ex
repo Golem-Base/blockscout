@@ -15,7 +15,7 @@ defmodule Explorer.Chain.GolemBase.Entity do
     field(:key, Hash.Full, primary_key: true, null: false)
     field(:data, :binary)
     field(:status, Ecto.Enum, values: [:active, :deleted, :expired])
-    field(:owner, :binary, null: false)
+    field(:owner, :binary)
     field(:last_updated_at_tx_hash, :binary, null: false)
     field(:expires_at_block_number, :integer, null: false)
 
@@ -30,7 +30,7 @@ defmodule Explorer.Chain.GolemBase.Entity do
   def changeset(%__MODULE__{} = golembase_entity, attrs) do
     golembase_entity
     |> cast(attrs, [:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number, :data])
-    |> validate_required([:key, :status, :owner, :last_updated_at_tx_hash, :expires_at_block_number])
+    |> validate_required([:key, :status, :last_updated_at_tx_hash, :expires_at_block_number])
   end
 
   @doc """
