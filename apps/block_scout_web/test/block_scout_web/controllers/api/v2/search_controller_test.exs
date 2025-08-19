@@ -1,13 +1,13 @@
 defmodule BlockScoutWeb.API.V2.SearchControllerTest do
   use BlockScoutWeb.ConnCase
 
-  alias Explorer.Chain.{Address, Block, GolemBase.Entity}
+  alias Explorer.Chain.{Address, Block, GolemBase}
   alias Explorer.Tags.AddressTag
   alias Plug.Conn.Query
 
   describe "/search" do
     test "search golembase entity", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_active)
 
         request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
@@ -24,7 +24,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
     end
 
     test "search golembase entity with status deleted", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_deleted)
 
         request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
@@ -36,7 +36,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
     end
 
     test "search golembase entity with status expired", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_expired)
 
         request = get(conn, "/api/v2/search?q=#{golembase_entity.key}")
@@ -1766,7 +1766,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
 
   describe "/search/check-redirect" do
     test "search golembase entity", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_active)
         hash = to_string(golembase_entity.key)
 
@@ -1777,7 +1777,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
     end
 
     test "search golembase entity with status deleted", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_deleted)
 
         request = get(conn, "/api/v2/search/check-redirect?q=#{golembase_entity.key}")
@@ -1787,7 +1787,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
     end
 
     test "search golembase entity with status expired", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_expired)
 
         request = get(conn, "/api/v2/search/check-redirect?q=#{golembase_entity.key}")
@@ -1895,7 +1895,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
 
   describe "/search/quick" do
     test "search golembase entity", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_active)
         hash = to_string(golembase_entity.key)
 
@@ -1906,7 +1906,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
     end
 
     test "search golembase entity with status deleted", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_deleted)
         hash = to_string(golembase_entity.key)
 
@@ -1917,7 +1917,7 @@ defmodule BlockScoutWeb.API.V2.SearchControllerTest do
     end
 
     test "search golembase entity with status expired", %{conn: conn} do
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity = insert(:golembase_entity_expired)
         hash = to_string(golembase_entity.key)
 

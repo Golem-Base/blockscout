@@ -844,12 +844,6 @@ config :explorer, Explorer.Chain.Filecoin.NativeAddress,
 
 config :explorer, Explorer.Chain.Blackfort.Validator, api_url: System.get_env("BLACKFORT_VALIDATOR_API_URL")
 
-config :explorer, Explorer.Chain.GolemBase.Entity,
-  enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false")
-
-config :explorer, Explorer.Chain.GolemBase.Operation,
-  enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false")
-
 addresses_blacklist_url = ConfigHelper.parse_microservice_url("ADDRESSES_BLACKLIST_URL")
 
 config :explorer, Explorer.Chain.Fetcher.AddressesBlacklist,
@@ -891,6 +885,14 @@ config :explorer, Explorer.Chain.Scroll.L1FeeParam,
   blob_scalar_init: ConfigHelper.parse_integer_env_var("SCROLL_L1_BLOB_SCALAR_INIT", 0),
   l1_base_fee_init: ConfigHelper.parse_integer_env_var("SCROLL_L1_BASE_FEE_INIT", 0),
   l1_blob_base_fee_init: ConfigHelper.parse_integer_env_var("SCROLL_L1_BLOB_BASE_FEE_INIT", 0)
+
+# GolemBase settings
+config :explorer, Explorer.Chain.GolemBase,
+  enabled: ConfigHelper.parse_bool_env_var("GOLEMBASE_ENABLED", "false"),
+  # DB-Chain storage limit in bytes, defaults to 1TB
+  storage_limit: ConfigHelper.parse_integer_env_var("GOLEMBASE_STORAGE_LIMIT", 1_099_511_627_776),
+  # Cache TTL for Used Slots, defaults to 1 minute
+  cache_ttl_used_slots: ConfigHelper.parse_time_env_var("GOLEMBASE_CACHE_TTL_USED_SLOTS", "5m")
 
 ###############
 ### Indexer ###

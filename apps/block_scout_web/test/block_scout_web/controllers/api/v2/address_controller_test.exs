@@ -11,7 +11,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
     Address,
     Address.CoinBalance,
     Block,
-    GolemBase.Operation,
+    GolemBase,
     InternalTransaction,
     Log,
     Token,
@@ -3639,7 +3639,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
       }
 
       expected =
-        if Operation.enabled?() do
+        if GolemBase.enabled?() do
           Map.put(expected, "golembase_operations_count", 0)
         else
           expected
@@ -3709,7 +3709,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
         )
       end
 
-      if Operation.enabled?() do
+      if GolemBase.enabled?() do
         for _ <- 1..10 do
           insert(:golembase_operation,
             sender: address.hash
@@ -3732,7 +3732,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
         }
 
       expected =
-        if Operation.enabled?() do
+        if GolemBase.enabled?() do
           Map.put(expected, "golembase_operations_count", 10)
         else
           expected
@@ -3821,7 +3821,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
         )
       end
 
-      if Operation.enabled?() do
+      if GolemBase.enabled?() do
         for _ <- 1..25 do
           insert(:golembase_operation,
             sender: address.hash
@@ -3843,7 +3843,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
       }
 
       expected =
-        if Operation.enabled?() do
+        if GolemBase.enabled?() do
           Map.put(expected, "golembase_operations_count", 25)
         else
           expected
@@ -3872,7 +3872,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
       insert(:transaction, from_address: address) |> with_block()
       insert(:transaction, to_address: address) |> with_block()
 
-      if Operation.enabled?() do
+      if GolemBase.enabled?() do
         for _ <- 1..30 do
           insert(:golembase_operation,
             sender: address.hash
@@ -3894,7 +3894,7 @@ defmodule BlockScoutWeb.API.V2.AddressControllerTest do
       }
 
       expected =
-        if Operation.enabled?() do
+        if GolemBase.enabled?() do
           Map.put(expected, "golembase_operations_count", 51)
         else
           expected

@@ -20,6 +20,7 @@ defmodule Explorer.Chain.Address.Counters do
     Address,
     Address.CurrentTokenBalance,
     Block,
+    GolemBase,
     GolemBase.Operation,
     Hash,
     InternalTransaction,
@@ -491,7 +492,7 @@ defmodule Explorer.Chain.Address.Counters do
       end
 
     golembase_operations_count_task =
-      if Operation.enabled?() do
+      if GolemBase.enabled?() do
         configure_task(
           :golembase_operations,
           cached_counters,

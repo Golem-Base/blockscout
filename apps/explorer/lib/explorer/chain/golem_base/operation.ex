@@ -1,6 +1,6 @@
 defmodule Explorer.Chain.GolemBase.Operation do
   @moduledoc """
-  The representation of a Golem Base operation
+  The representation of a Golem Base operation.
   """
 
   use Explorer.Schema
@@ -19,13 +19,14 @@ defmodule Explorer.Chain.GolemBase.Operation do
     field(:index, :integer, null: false)
   end
 
+  @doc """
+  Creates a changeset for a Golem Base operation.
+
+  Validates that required fields are present and casts the provided attributes.
+  """
   def changeset(%__MODULE__{} = golembase_operation, attrs) do
     golembase_operation
     |> cast(attrs, [:entity_key, :sender, :recipient, :operation, :block_hash, :transaction_hash, :index, :data, :btl])
     |> validate_required([:entity_key, :sender, :recipient, :operation, :block_hash, :transaction_hash, :index])
-  end
-
-  def enabled? do
-    Application.get_env(:explorer, __MODULE__)[:enabled]
   end
 end

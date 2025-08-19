@@ -22,6 +22,7 @@ defmodule Explorer.Chain.Search do
     Beacon.Blob,
     Block,
     DenormalizationHelper,
+    GolemBase,
     GolemBase.Entity,
     Hash,
     SmartContract,
@@ -193,7 +194,7 @@ defmodule Explorer.Chain.Search do
       |> union_all(^search_block_by_hash_query(full_hash))
 
     transaction_block_golembase_entity_query =
-      if Entity.enabled?() do
+      if GolemBase.enabled?() do
         golembase_entity_query = search_golembase_entity_query(full_hash)
 
         transaction_block_query
