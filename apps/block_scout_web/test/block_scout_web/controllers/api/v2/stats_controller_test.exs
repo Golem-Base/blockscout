@@ -44,6 +44,8 @@ defmodule BlockScoutWeb.API.V2.StatsControllerTest do
       assert Map.has_key?(response, "golembase_used_slots")
       assert Map.has_key?(response, "golembase_active_entities_size")
       assert Map.has_key?(response, "golembase_active_entities_count")
+      assert Map.has_key?(response, "golembase_total_operations")
+      assert Map.has_key?(response, "golembase_unique_active_addresses")
     end
   end
 
