@@ -8,7 +8,7 @@ defmodule BlockScoutWeb.API.V2.StatsController do
   alias Explorer.Chain.Cache.{ChainId, GasPriceOracle, GolemBase.UsedSlots}
   alias Explorer.Chain.Cache.Counters.{AddressesCount, AverageBlockTime, BlocksCount, GasUsageSum, TransactionsCount}
   alias Explorer.Chain.GolemBase
-  alias Explorer.Chain.GolemBase.Entity
+  alias Explorer.Chain.GolemBase.{Entity, Operation}
   alias Explorer.Chain.Supply.RSK
   alias Explorer.Chain.Transaction.History.TransactionStats
   alias Plug.Conn
@@ -83,7 +83,9 @@ defmodule BlockScoutWeb.API.V2.StatsController do
         "golembase_storage_limit" => get_golembase_storage_limit(),
         "golembase_used_slots" => get_golembase_used_slots(),
         "golembase_active_entities_size" => get_golembase_active_entities_size(),
-        "golembase_active_entities_count" => get_golembase_active_entities_count()
+        "golembase_active_entities_count" => get_golembase_active_entities_count(),
+        "golembase_total_operations" => get_golembase_total_operations(),
+        "golembase_unique_active_addresses" => get_golembase_unique_active_addresses()
       }
       |> add_chain_type_fields()
       |> backward_compatibility(conn)
@@ -203,6 +205,14 @@ defmodule BlockScoutWeb.API.V2.StatsController do
 
   defp get_golembase_active_entities_count do
     Entity.active_entities_count()
+  end
+
+  defp get_golembase_total_operations do
+    Operation.total_operations_count()
+  end
+
+  defp get_golembase_unique_active_addresses do
+    Entity.unique_active_addresses_count()
   end
 
   case @chain_type do

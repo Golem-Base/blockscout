@@ -78,6 +78,21 @@ defmodule Explorer.Chain.GolemBase.Entity do
   def active_entities_count do
     query = from(entity in __MODULE__, where: entity.status == :active, select: count())
 
-    Repo.one(query)
+    Repo.one(query) || 0
+  end
+
+  @doc """
+  Returns the count of unique addresses owning at least one active entity.
+
+  Counts distinct owner addresses for entities with `:active` status.
+  """
+  def unique_active_addresses_count do
+    query =
+      from(entity in __MODULE__,
+        where: entity.status == :active,
+        select: count(entity.owner, :distinct)
+      )
+
+    Repo.one(query) || 0
   end
 end
