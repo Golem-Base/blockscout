@@ -85,7 +85,10 @@ defmodule BlockScoutWeb.API.V2.StatsController do
         "golembase_active_entities_size" => get_golembase_active_entities_size(),
         "golembase_active_entities_count" => get_golembase_active_entities_count(),
         "golembase_total_operations" => get_golembase_total_operations(),
-        "golembase_unique_active_addresses" => get_golembase_unique_active_addresses()
+        "golembase_unique_active_addresses" => get_golembase_unique_active_addresses(),
+        "golembase_total_entities_created" => get_golembase_total_entities_created(),
+        "golembase_entities_deleted" => get_golembase_entities_deleted(),
+        "golembase_entities_expired" => get_golembase_entities_expired()
       }
       |> add_chain_type_fields()
       |> backward_compatibility(conn)
@@ -213,6 +216,18 @@ defmodule BlockScoutWeb.API.V2.StatsController do
 
   defp get_golembase_unique_active_addresses do
     Entity.unique_active_addresses_count()
+  end
+
+  defp get_golembase_total_entities_created do
+    Entity.total_entities_created()
+  end
+
+  defp get_golembase_entities_deleted do
+    Entity.entities_deleted_count()
+  end
+
+  defp get_golembase_entities_expired do
+    Entity.entities_expired_count()
   end
 
   case @chain_type do

@@ -95,4 +95,37 @@ defmodule Explorer.Chain.GolemBase.Entity do
 
     Repo.one(query) || 0
   end
+
+  @doc """
+  Returns the total count of all entities created (cumulative, including inactive).
+
+  Counts all entities regardless of status.
+  """
+  def total_entities_created do
+    query = from(entity in __MODULE__, select: count())
+
+    Repo.one(query) || 0
+  end
+
+  @doc """
+  Returns the count of entities with deleted status.
+
+  Counts all entities with `:deleted` status.
+  """
+  def entities_deleted_count do
+    query = from(entity in __MODULE__, where: entity.status == :deleted, select: count())
+
+    Repo.one(query) || 0
+  end
+
+  @doc """
+  Returns the count of entities with expired status.
+
+  Counts all entities with `:expired` status.
+  """
+  def entities_expired_count do
+    query = from(entity in __MODULE__, where: entity.status == :expired, select: count())
+
+    Repo.one(query) || 0
+  end
 end
