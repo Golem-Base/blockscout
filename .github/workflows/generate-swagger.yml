@@ -1,4 +1,4 @@
-name: Blockscout
+name: Generate Swagger
 
 on:
   push:
@@ -14,9 +14,9 @@ on:
     types: [published]
 
 env:
-  OTP_VERSION: ${{ vars.OTP_VERSION }}
-  ELIXIR_VERSION: ${{ vars.ELIXIR_VERSION }}
-  RELEASE_VERSION: 8.1.0
+  OTP_VERSION: "27.3.4.6"
+  ELIXIR_VERSION: "1.19.4"
+  RELEASE_VERSION: 9.3.2
 
 jobs:
   matrix-builder:
@@ -30,16 +30,12 @@ jobs:
           echo "matrix=$(node -e '
 
             // Add/remove CI matrix chain types here
-            const defaultChainTypes = ["default"];
-
             const chainTypes = [
               "optimism",
             ];
 
-            // Chain type matrix we use in master branch
-            const allChainTypes = [].concat(defaultChainTypes, chainTypes);
 
-            const matrix = { "chain-type": ${{ 'allChainTypes' }} };
+            const matrix = { "chain-type": ${{ 'chainTypes' }} };
             console.log(JSON.stringify(matrix));
           ')" >> $GITHUB_OUTPUT
 
@@ -47,7 +43,7 @@ jobs:
     name: Build and Cache deps
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ env.OTP_VERSION }}
@@ -91,7 +87,7 @@ jobs:
       - build-and-cache
       - matrix-builder
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ env.OTP_VERSION }}

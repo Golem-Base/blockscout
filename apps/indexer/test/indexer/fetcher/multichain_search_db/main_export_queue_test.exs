@@ -3,7 +3,6 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueueTest do
   use Explorer.DataCase
 
   import ExUnit.CaptureLog, only: [capture_log: 1]
-  import Mox
 
   alias Explorer.Chain.MultichainSearchDb.MainExportQueue
   alias Explorer.Chain.Block.Range
@@ -81,6 +80,7 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueueTest do
 
       on_exit(fn ->
         Application.put_env(:explorer, MultichainSearch, service_url: nil, api_key: nil, addresses_chunk_size: 7000)
+        Application.put_env(:tesla, :adapter, Explorer.Mock.TeslaAdapter)
         Bypass.down(bypass)
       end)
 
@@ -104,6 +104,8 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueueTest do
 
       TestHelper.get_chain_id_mock()
 
+      Application.put_env(:tesla, :adapter, Tesla.Adapter.Mint)
+
       Bypass.expect_once(bypass, "POST", "/api/v1/import:batch", fn conn ->
         Conn.resp(
           conn,
@@ -124,18 +126,15 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueueTest do
         addresses_chunk_size: 1
       )
 
-      Application.put_env(:explorer, :http_adapter, Explorer.Mox.HTTPoison)
-
       on_exit(fn ->
         Application.put_env(:explorer, MultichainSearch, service_url: nil, api_key: nil, addresses_chunk_size: 7000)
-        Application.put_env(:explorer, :http_adapter, HTTPoison)
       end)
 
       address_1 = insert(:address)
+      address_1_hash_string = to_string(address_1) |> String.downcase()
       address_2 = insert(:address)
       address_2_hash_string = to_string(address_2) |> String.downcase()
       address_3 = insert(:address)
-      address_3_hash_string = to_string(address_3) |> String.downcase()
       block = insert(:block, number: 1)
       block_number_string = to_string(block.number)
       block_hash_string = to_string(block.hash)
@@ -156,24 +155,21 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueueTest do
 
       TestHelper.get_chain_id_mock()
 
-      for _ <- 0..2 do
-        Explorer.Mox.HTTPoison
-        |> expect(:post, fn "http://localhost:1234/api/v1/import:batch",
-                            body,
-                            [{"Content-Type", "application/json"}],
-                            _options ->
+      Tesla.Test.expect_tesla_call(
+        times: 3,
+        returns: fn %{url: "http://localhost:1234/api/v1/import:batch", body: body}, _opts ->
           case Jason.decode(body) do
             {:ok, %{"block_ranges" => [%{"max_block_number" => _, "min_block_number" => _}]}} ->
-              {:ok, %HTTPoison.Response{status_code: 500, body: Jason.encode!(%{"code" => 0, "message" => "Error"})}}
+              {:ok, %Tesla.Env{status: 500, body: Jason.encode!(%{"code" => 0, "message" => "Error"})}}
 
             {:ok, %{"addresses" => [%{"hash" => ^address_2_hash_string}]}} ->
-              {:ok, %HTTPoison.Response{status_code: 500, body: Jason.encode!(%{"code" => 0, "message" => "Error"})}}
+              {:ok, %Tesla.Env{status: 500, body: Jason.encode!(%{"code" => 0, "message" => "Error"})}}
 
             _ ->
-              {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"status" => "ok"})}}
+              {:ok, %Tesla.Env{status: 200, body: Jason.encode!(%{"status" => "ok"})}}
           end
-        end)
-      end
+        end
+      )
 
       log =
         capture_log(fn ->
@@ -182,22 +178,14 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueueTest do
                     addresses: [
                       %{
                         hash: ^address_2_hash_string,
-                        token_type: "UNSPECIFIED",
                         is_contract: false,
-                        token_name: nil,
                         contract_name: nil,
-                        ens_name: nil,
-                        is_token: false,
                         is_verified_contract: false
                       },
                       %{
-                        hash: ^address_3_hash_string,
-                        token_type: "UNSPECIFIED",
+                        hash: ^address_1_hash_string,
                         is_contract: false,
-                        token_name: nil,
                         contract_name: nil,
-                        ens_name: nil,
-                        is_token: false,
                         is_verified_contract: false
                       }
                     ],
@@ -213,12 +201,14 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueueTest do
         end)
 
       assert Repo.aggregate(MainExportQueue, :count, :hash) == 4
+      results = Repo.all(MainExportQueue)
+      assert Enum.all?(results, &(&1.retries_number == nil))
 
-      assert log =~ "Batch export retry to the Multichain Search DB failed"
+      assert log =~ "Batch main export retry to the Multichain Search DB failed"
 
       export_data_2 = [
         %{hash: address_2.hash.bytes, hash_type: :address, block_range: %Range{from: block.number, to: block.number}},
-        %{hash: address_3.hash.bytes, hash_type: :address, block_range: %Range{from: block.number, to: block.number}},
+        %{hash: address_1.hash.bytes, hash_type: :address, block_range: %Range{from: block.number, to: block.number}},
         %{hash: block.hash.bytes, hash_type: :block, block_range: %Range{from: block.number, to: block.number}},
         %{
           hash: transaction.hash.bytes,
@@ -229,25 +219,40 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueueTest do
 
       TestHelper.get_chain_id_mock()
 
-      for _ <- 0..1 do
-        Explorer.Mox.HTTPoison
-        |> expect(:post, fn "http://localhost:1234/api/v1/import:batch",
-                            body,
-                            [{"Content-Type", "application/json"}],
-                            _options ->
-          case Jason.decode(body) do
-            {:ok, %{"block_ranges" => [%{"max_block_number" => _, "min_block_number" => _}]}} ->
-              {:ok, %HTTPoison.Response{status_code: 500, body: Jason.encode!(%{"code" => 0, "message" => "Error"})}}
-
-            _ ->
-              {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"status" => "ok"})}}
-          end
-        end)
-      end
+      tesla_expectations()
 
       MultichainSearchDbMainExportQueue.run(export_data_2, nil)
 
       assert Repo.aggregate(MainExportQueue, :count, :hash) == 3
+      results = Repo.all(MainExportQueue)
+      assert Enum.all?(results, &(&1.retries_number == 1))
+
+      # Check, that `retries_number` is incrementing
+
+      TestHelper.get_chain_id_mock()
+
+      tesla_expectations()
+
+      MultichainSearchDbMainExportQueue.run(export_data_2, nil)
+
+      assert Repo.aggregate(MainExportQueue, :count, :hash) == 3
+      results = Repo.all(MainExportQueue)
+      assert Enum.all?(results, &(&1.retries_number == 2))
     end
+  end
+
+  defp tesla_expectations() do
+    Tesla.Test.expect_tesla_call(
+      times: 2,
+      returns: fn %{url: "http://localhost:1234/api/v1/import:batch", body: body}, _opts ->
+        case Jason.decode(body) do
+          {:ok, %{"block_ranges" => [%{"max_block_number" => _, "min_block_number" => _}]}} ->
+            {:ok, %Tesla.Env{status: 500, body: Jason.encode!(%{"code" => 0, "message" => "Error"})}}
+
+          _ ->
+            {:ok, %Tesla.Env{status: 200, body: Jason.encode!(%{"status" => "ok"})}}
+        end
+      end
+    )
   end
 end

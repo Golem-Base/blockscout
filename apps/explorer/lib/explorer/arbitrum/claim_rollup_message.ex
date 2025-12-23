@@ -236,7 +236,7 @@ defmodule Explorer.Arbitrum.ClaimRollupMessage do
       }
     else
       Logger.error(
-        "message_to_withdrawal: log doesn't correspond message (#{fields.position} != #{message.message_id})"
+        "message_to_withdrawal: log doesn't correspond message (#{fields.message_id} != #{message.message_id})"
       )
 
       nil
@@ -419,11 +419,7 @@ defmodule Explorer.Arbitrum.ClaimRollupMessage do
 
     %{
       address_hash: token_bin,
-      # todo: "address" should be removed in favour `address_hash` property with the next release after 8.0.0
-      address: token_bin,
       destination_address_hash: to_bin,
-      # todo: "destination" should be removed in favour `destination_address_hash` property with the next release after 8.0.0
-      destination: to_bin,
       amount: amount,
       decimals: token_info.decimals,
       name: token_info.name,
@@ -644,7 +640,7 @@ defmodule Explorer.Arbitrum.ClaimRollupMessage do
            [ArbitrumEvents.node_created()],
            json_l1_rpc_named_arguments
          ) do
-      {:ok, events} when is_list(events) and length(events) > 0 ->
+      {:ok, events} when is_list(events) and events !== [] ->
         node_created_event = List.last(events)
         # extract L2 block hash from the NodeCreated event
         l2_block_hash = l2_block_hash_from_node_created_event(node_created_event)

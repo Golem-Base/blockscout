@@ -3,15 +3,15 @@ name: Docker
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
-    tags: [ 'release-**' ]
+    branches: [master]
+    tags: ["release-**"]
 
 jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     env:
-      RELEASE_VERSION: 8.1.1
+      RELEASE_VERSION: 9.3.2
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +40,7 @@ jobs:
             BLOCKSCOUT_VERSION=v${{ env.RELEASE_VERSION }}
             RELEASE_VERSION=${{ env.RELEASE_VERSION }}
             CHAIN_TYPE=optimism
-          push: ${{ github.event_name == 'push' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
