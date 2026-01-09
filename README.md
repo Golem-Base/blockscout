@@ -8,7 +8,7 @@ This fork extends the Blockscout to support Golem Base specific features, like t
 
 ## Running locally
 
-See [upstream docs](https://docs.blockscout.com/).
+See [development setup](./docs/development-setup.md) and [upstream docs](https://docs.blockscout.com/).
 
 See also [Compose files](https://github.com/Golem-Base/blockscout-compose-files) for easy container-based solution.
 
