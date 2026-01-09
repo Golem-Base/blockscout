@@ -347,6 +347,7 @@ defmodule Explorer.Chain.Address.Counters do
   end
 
   @spec address_limited_counters(Hash.t(), Keyword.t()) :: %{atom() => counter}
+  # credo:disable-for-next-line
   def address_limited_counters(address_hash, options) do
     cached_counters =
       Enum.reduce(@types, %{}, fn type, acc ->
