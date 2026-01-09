@@ -1,64 +1,53 @@
-name: Release for Optimism
+name: Docker
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]
-
-permissions:
-  contents: read
-  packages: write
-
-env:
-  OTP_VERSION: '27.3.4.6'
-  ELIXIR_VERSION: '1.19.4'
+  push:
+    branches: [upstream]
+    tags: ["release-upstream-**"]
 
 jobs:
   push_to_registry:
-    name: Push Docker image to GitHub Container Registry
-    runs-on: build
-    env:
-      RELEASE_VERSION: 9.3.2
+    name: Push Docker image to Docker Hub
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - name: Setup repo
-        uses: ./.github/actions/setup-repo
-        id: setup
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          docker-remote-multi-platform: true
-          docker-arm-host: ${{ secrets.ARM_RUNNER_HOSTNAME }}
-          docker-arm-host-key: ${{ secrets.ARM_RUNNER_KEY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: golemnetwork/blockscout-optimism
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -Po '(?<=version: ")(.*)(?=")' mix.exs)
+          [ -z "$VERSION" ] && echo "Failure to detect version" 2>&1 && exit 1
+          echo "Detected version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image for Optimism (indexer + API)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/Dockerfile
-          push: true
-          tags: ghcr.io/blockscout/blockscout-optimism-private:latest, ghcr.io/blockscout/blockscout-optimism-private:${{ env.RELEASE_VERSION }}
-          labels: ${{ steps.setup.outputs.docker-labels }}
-          platforms: |
-            linux/amd64
-            linux/arm64/v8
+          platforms: linux/amd64
           build-args: |
-            BLOCKSCOUT_VERSION=v${{ env.RELEASE_VERSION }}
-            RELEASE_VERSION=${{ env.RELEASE_VERSION }}
+            BLOCKSCOUT_VERSION=v${{ steps.version.outputs.version }}
+            RELEASE_VERSION=${{ steps.version.outputs.version }}
             CHAIN_TYPE=optimism
-
-      - name: Build and push Docker image for Optimism (indexer)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./docker/Dockerfile
-          push: true
-          tags: ghcr.io/blockscout/blockscout-optimism-private:${{ env.RELEASE_VERSION }}-indexer
-          labels: ${{ steps.setup.outputs.docker-labels }}
-          platforms: |
-            linux/amd64
-            linux/arm64/v8
-          build-args: |
-            DISABLE_API=true
-            BLOCKSCOUT_VERSION=v${{ env.RELEASE_VERSION }}
-            RELEASE_VERSION=${{ env.RELEASE_VERSION }}
-            CHAIN_TYPE=optimism
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
