@@ -3,10 +3,8 @@ defmodule Explorer.Chain.GolemBase.Operation do
   The representation of a Golem Base operation.
   """
 
-  import Ecto.Query, only: [from: 2]
-
   use Explorer.Schema
-  alias Explorer.{Chain.Hash, Repo}
+  alias Explorer.Chain.Hash
 
   @primary_key false
   typed_schema "golem_base_operations" do
@@ -30,16 +28,5 @@ defmodule Explorer.Chain.GolemBase.Operation do
     golembase_operation
     |> cast(attrs, [:entity_key, :sender, :recipient, :operation, :block_hash, :transaction_hash, :index, :data, :btl])
     |> validate_required([:entity_key, :sender, :recipient, :operation, :block_hash, :transaction_hash, :index])
-  end
-
-  @doc """
-  Returns the total count of all operations.
-
-  Counts all Create, Update, Delete, and Extend operations.
-  """
-  def total_operations_count do
-    query = from(operation in __MODULE__, select: count())
-
-    Repo.one(query) || 0
   end
 end

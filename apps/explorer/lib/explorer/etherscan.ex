@@ -7,11 +7,11 @@ defmodule Explorer.Etherscan do
 
   import Explorer.Chain.SmartContract, only: [burn_address_hash_string: 0]
 
-  alias Explorer.Etherscan.Logs
   alias Explorer.{Chain, Repo}
-  alias Explorer.Chain.Address.{CurrentTokenBalance, TokenBalance}
   alias Explorer.Chain.{Address, Block, DenormalizationHelper, Hash, InternalTransaction, TokenTransfer, Transaction}
+  alias Explorer.Chain.Address.{CurrentTokenBalance, TokenBalance}
   alias Explorer.Chain.Transaction.History.TransactionStats
+  alias Explorer.Etherscan.Logs
 
   @default_options %{
     order_by_direction: :desc,
@@ -32,6 +32,14 @@ defmodule Explorer.Etherscan do
   def page_size_max do
     @default_options.page_size
   end
+
+  @doc """
+  Returns the default options map used for querying operations.
+
+  The map includes default values for pagination, ordering, block ranges, and filtering options.
+  """
+  @spec default_options() :: map()
+  def default_options, do: @default_options
 
   @doc """
   Gets a list of transactions for a given `t:Explorer.Chain.Hash.Address.t/0`.
@@ -73,9 +81,11 @@ defmodule Explorer.Etherscan do
   end
 
   @internal_transaction_fields ~w(
+    block_number
     from_address_hash
     to_address_hash
     transaction_hash
+    transaction_index
     index
     value
     created_contract_address_hash
@@ -86,6 +96,15 @@ defmodule Explorer.Etherscan do
     gas_used
     error
   )a
+
+  @doc """
+  Returns the list of internal transaction fields used in query selections.
+
+  These fields represent the core attributes of internal transactions that are
+  consistently retrieved across different query operations.
+  """
+  @spec internal_transaction_fields() :: [atom()]
+  def internal_transaction_fields, do: @internal_transaction_fields
 
   @doc """
   Gets a list of all internal transactions (with :all option) or for a given address hash
@@ -116,8 +135,7 @@ defmodule Explorer.Etherscan do
           limit: 10_000,
           select:
             merge(map(it, ^@internal_transaction_fields), %{
-              block_timestamp: transaction.block_timestamp,
-              block_number: transaction.block_number
+              block_timestamp: transaction.block_timestamp
             })
         )
       else
@@ -129,14 +147,12 @@ defmodule Explorer.Etherscan do
           limit: 10_000,
           select:
             merge(map(it, ^@internal_transaction_fields), %{
-              block_timestamp: b.timestamp,
-              block_number: b.number
+              block_timestamp: b.timestamp
             })
         )
       end
 
     query
-    |> InternalTransaction.where_transaction_has_multiple_internal_transactions()
     |> InternalTransaction.where_is_different_from_parent_transaction()
     |> InternalTransaction.where_nonpending_block()
     |> InternalTransaction.include_zero_value(options.include_zero_value)
@@ -149,68 +165,34 @@ defmodule Explorer.Etherscan do
       ) do
     options = Map.merge(@default_options, raw_options)
 
-    direction =
-      case options do
-        %{filter_by: "to"} -> :to
-        %{filter_by: "from"} -> :from
-        _ -> nil
-      end
-
-    if direction do
+    options
+    |> options_to_directions()
+    |> Enum.map(fn direction ->
       options
-      |> internal_transactions_with_transactions_and_blocks_query()
-      |> InternalTransaction.where_transaction_has_multiple_internal_transactions()
+      |> consensus_internal_transactions_with_transactions_and_blocks_query()
       |> InternalTransaction.where_address_fields_match(address_hash, direction)
       |> InternalTransaction.where_is_different_from_parent_transaction()
       |> InternalTransaction.include_zero_value(options.include_zero_value)
-      |> where_start_block_match(options)
-      |> where_end_block_match(options)
+      |> where_start_block_match_internal_transaction(options)
+      |> where_end_block_match_internal_transaction(options)
       |> InternalTransaction.where_nonpending_block()
-      |> Repo.replica().all()
-    else
-      consensus_blocks = Block.consensus_blocks_query()
-      query = internal_transactions_query(options, consensus_blocks)
-
-      query_to_address_hash_wrapped =
-        query
-        |> InternalTransaction.where_address_fields_match(address_hash, :to_address_hash)
-        |> InternalTransaction.where_is_different_from_parent_transaction()
-        |> InternalTransaction.include_zero_value(options.include_zero_value)
-        |> where_start_block_match(options)
-        |> where_end_block_match(options)
-        |> Chain.wrapped_union_subquery()
-
-      query_from_address_hash_wrapped =
-        query
-        |> InternalTransaction.where_address_fields_match(address_hash, :from_address_hash)
-        |> InternalTransaction.where_is_different_from_parent_transaction()
-        |> InternalTransaction.include_zero_value(options.include_zero_value)
-        |> where_start_block_match(options)
-        |> where_end_block_match(options)
-        |> Chain.wrapped_union_subquery()
-
-      query_created_contract_address_hash_wrapped =
-        query
-        |> InternalTransaction.where_address_fields_match(address_hash, :created_contract_address_hash)
-        |> InternalTransaction.where_is_different_from_parent_transaction()
-        |> InternalTransaction.include_zero_value(options.include_zero_value)
-        |> where_start_block_match(options)
-        |> where_end_block_match(options)
-        |> Chain.wrapped_union_subquery()
-
-      query_to_address_hash_wrapped
-      |> union(^query_from_address_hash_wrapped)
-      |> union(^query_created_contract_address_hash_wrapped)
       |> Chain.wrapped_union_subquery()
-      |> order_by(
-        [q],
-        [
-          {^options.order_by_direction, q.block_number},
-          desc: q.index
-        ]
-      )
-      |> Repo.replica().all()
-    end
+    end)
+    |> Enum.reduce(fn query, acc ->
+      union(acc, ^query)
+    end)
+    |> Chain.wrapped_union_subquery()
+    |> order_by(
+      [q],
+      [
+        {^options.order_by_direction, q.block_number},
+        {^options.order_by_direction, q.transaction_index},
+        {^options.order_by_direction, q.index}
+      ]
+    )
+    |> offset(^options_to_offset(options))
+    |> limit(^options.page_size)
+    |> Repo.replica().all()
   end
 
   def list_internal_transactions(
@@ -225,38 +207,46 @@ defmodule Explorer.Etherscan do
     |> internal_transactions_query(consensus_blocks)
     |> InternalTransaction.where_is_different_from_parent_transaction()
     |> InternalTransaction.include_zero_value(options.include_zero_value)
-    |> where_start_block_match(options)
-    |> where_end_block_match(options)
+    |> where_start_block_match_internal_transaction(options)
+    |> where_end_block_match_internal_transaction(options)
     |> Repo.replica().all()
   end
 
-  defp internal_transactions_with_transactions_and_blocks_query(options) do
+  defp consensus_internal_transactions_with_transactions_and_blocks_query(options) do
     if DenormalizationHelper.transactions_denormalization_finished?() do
       from(
         it in InternalTransaction,
+        as: :internal_transaction,
         inner_join: transaction in assoc(it, :transaction),
         where: not is_nil(transaction.block_hash),
-        order_by: [{^options.order_by_direction, transaction.block_number}],
-        limit: ^options.page_size,
-        offset: ^offset(options),
+        where: transaction.block_consensus == true,
+        order_by: [
+          {^options.order_by_direction, it.block_number},
+          {^options.order_by_direction, it.transaction_index},
+          {^options.order_by_direction, it.index}
+        ],
+        limit: ^options_to_limit_for_inner_query(options),
         select:
           merge(map(it, ^@internal_transaction_fields), %{
-            block_timestamp: transaction.block_timestamp,
-            block_number: transaction.block_number
+            block_timestamp: transaction.block_timestamp
           })
       )
     else
       from(
         it in InternalTransaction,
+        as: :internal_transaction,
         inner_join: t in assoc(it, :transaction),
         inner_join: b in assoc(t, :block),
-        order_by: [{^options.order_by_direction, t.block_number}],
-        limit: ^options.page_size,
-        offset: ^offset(options),
+        where: b.consensus == true,
+        order_by: [
+          {^options.order_by_direction, it.block_number},
+          {^options.order_by_direction, it.transaction_index},
+          {^options.order_by_direction, it.index}
+        ],
+        limit: ^options_to_limit_for_inner_query(options),
         select:
           merge(map(it, ^@internal_transaction_fields), %{
-            block_timestamp: b.timestamp,
-            block_number: b.number
+            block_timestamp: b.timestamp
           })
       )
     end
@@ -265,19 +255,19 @@ defmodule Explorer.Etherscan do
   defp internal_transactions_query(options, consensus_blocks) do
     from(
       it in InternalTransaction,
+      as: :internal_transaction,
       inner_join: block in subquery(consensus_blocks),
       on: it.block_number == block.number,
       order_by: [
         {^options.order_by_direction, it.block_number},
-        {:desc, it.transaction_index},
-        {:desc, it.index}
+        {^options.order_by_direction, it.transaction_index},
+        {^options.order_by_direction, it.index}
       ],
       limit: ^options.page_size,
-      offset: ^offset(options),
+      offset: ^options_to_offset(options),
       select:
         merge(map(it, ^@internal_transaction_fields), %{
-          block_timestamp: block.timestamp,
-          block_number: block.number
+          block_timestamp: block.timestamp
         })
     )
   end
@@ -286,7 +276,7 @@ defmodule Explorer.Etherscan do
   Retrieves token transfers filtered by token standard type with optional address and contract filtering.
 
   This function queries token transfers based on the specified token standard
-  (ERC-20, ERC-721, ERC-1155, or ERC-404) and applies optional filtering by
+  (ERC-20, ERC-721, ERC-1155, ERC-404, or ZRC-2) and applies optional filtering by
   address and contract address. The function merges provided options with
   default settings for pagination, ordering, and block range filtering.
 
@@ -296,7 +286,7 @@ defmodule Explorer.Etherscan do
 
   ## Parameters
   - `token_transfers_type`: The token standard type (`:erc20`, `:erc721`,
-    `:erc1155`, or `:erc404`)
+    `:erc1155`, `:erc404`, or `:zrc2`)
   - `address_hash`: Optional address hash to filter transfers involving this
     address as sender or recipient (filters by `from_address_hash` or
     `to_address_hash`)
@@ -312,7 +302,7 @@ defmodule Explorer.Etherscan do
     and `index_in_batch` fields
   """
   @spec list_token_transfers(
-          :erc20 | :erc721 | :erc1155 | :erc404,
+          :erc20 | :erc721 | :erc1155 | :erc404 | :zrc2,
           Hash.Address.t() | nil,
           Hash.Address.t() | nil,
           map()
@@ -332,6 +322,9 @@ defmodule Explorer.Etherscan do
 
       :erc404 ->
         list_erc404_token_transfers(address_hash, contract_address_hash, options)
+
+      :zrc2 ->
+        list_zrc2_token_transfers(address_hash, contract_address_hash, options)
     end
   end
 
@@ -361,7 +354,7 @@ defmodule Explorer.Etherscan do
         where: block.miner_hash == ^address_hash,
         order_by: [desc: block.number],
         limit: ^merged_options.page_size,
-        offset: ^offset(merged_options),
+        offset: ^options_to_offset(merged_options),
         select: %{
           number: block.number,
           timestamp: block.timestamp
@@ -459,15 +452,30 @@ defmodule Explorer.Etherscan do
     query =
       from(
         t in Transaction,
-        limit: ^options.page_size,
-        offset: ^offset(options),
+        limit: ^options_to_limit_for_inner_query(options),
         select: map(t, ^@pending_transaction_fields)
       )
 
-    query
-    |> where_address_match(address_hash, options)
-    |> Chain.pending_transactions_query()
-    |> order_by([transaction], desc: transaction.inserted_at, desc: transaction.hash)
+    options
+    |> options_to_directions()
+    |> Enum.map(fn direction ->
+      query
+      |> where_address_match(address_hash, direction)
+      |> Chain.pending_transactions_query()
+      |> order_by([transaction], desc: transaction.inserted_at, desc: transaction.hash)
+      |> Chain.wrapped_union_subquery()
+    end)
+    |> Enum.reduce(fn query, acc ->
+      union(acc, ^query)
+    end)
+    |> Chain.wrapped_union_subquery()
+    |> order_by(
+      [transaction],
+      desc: transaction.inserted_at,
+      desc: transaction.hash
+    )
+    |> offset(^options_to_offset(options))
+    |> limit(^options.page_size)
     |> Repo.replica().all()
   end
 
@@ -478,9 +486,8 @@ defmodule Explorer.Etherscan do
           t in Transaction,
           where: not is_nil(t.block_hash),
           where: t.block_consensus == true,
-          order_by: [{^options.order_by_direction, t.block_number}],
-          limit: ^options.page_size,
-          offset: ^offset(options),
+          order_by: [{^options.order_by_direction, t.block_number}, {^options.order_by_direction, t.index}],
+          limit: ^options_to_limit_for_inner_query(options),
           select:
             merge(map(t, ^@transaction_fields), %{
               confirmations: fragment("? - ?", ^max_block_number, t.block_number)
@@ -491,9 +498,8 @@ defmodule Explorer.Etherscan do
           t in Transaction,
           inner_join: b in assoc(t, :block),
           where: b.consensus == true,
-          order_by: [{^options.order_by_direction, t.block_number}],
-          limit: ^options.page_size,
-          offset: ^offset(options),
+          order_by: [{^options.order_by_direction, t.block_number}, {^options.order_by_direction, t.index}],
+          limit: ^options_to_limit_for_inner_query(options),
           select:
             merge(map(t, ^@transaction_fields), %{
               block_timestamp: b.timestamp,
@@ -502,38 +508,72 @@ defmodule Explorer.Etherscan do
         )
       end
 
-    query
-    |> where_address_match(address_hash, options)
-    |> where_start_transaction_block_match(options)
-    |> where_end_transaction_block_match(options)
-    |> where_start_timestamp_match(options)
-    |> where_end_timestamp_match(options)
+    options
+    |> options_to_directions()
+    |> Enum.map(fn direction ->
+      query
+      |> where_address_match(address_hash, direction)
+      |> where_start_transaction_block_match(options)
+      |> where_end_transaction_block_match(options)
+      |> where_start_timestamp_match(options)
+      |> where_end_timestamp_match(options)
+      |> Chain.wrapped_union_subquery()
+    end)
+    |> Enum.reduce(fn query, acc ->
+      union(acc, ^query)
+    end)
+    |> Chain.wrapped_union_subquery()
+    |> order_by(
+      [q],
+      [
+        {^options.order_by_direction, q.block_number},
+        {^options.order_by_direction, q.index}
+      ]
+    )
+    |> offset(^options_to_offset(options))
+    |> limit(^options.page_size)
     |> Repo.replica().all()
   end
 
-  defp where_address_match(query, address_hash, %{filter_by: "to"}) do
+  defp where_address_match(query, address_hash, :to_address_hash) do
     where(query, [t], t.to_address_hash == ^address_hash)
   end
 
-  defp where_address_match(query, address_hash, %{filter_by: "from"}) do
+  defp where_address_match(query, address_hash, :from_address_hash) do
     where(query, [t], t.from_address_hash == ^address_hash)
   end
 
-  defp where_address_match(query, address_hash, _) do
-    where(
-      query,
-      [t],
-      t.to_address_hash == ^address_hash or t.from_address_hash == ^address_hash or
-        t.created_contract_address_hash == ^address_hash
-    )
+  defp where_address_match(query, address_hash, :created_contract_address_hash) do
+    where(query, [t], t.created_contract_address_hash == ^address_hash)
   end
 
   defp list_erc20_token_transfers(address_hash, contract_address_hash, options) do
-    "ERC-20" |> base_token_transfers_query(address_hash, contract_address_hash, options) |> Repo.all()
+    "ERC-20" |> base_token_transfers_query(address_hash, contract_address_hash, options) |> Repo.replica().all()
+  end
+
+  # Retrieves token transfers filtered by ZRC-2 type with optional address and contract filtering.
+  #
+  # This function queries token transfers based on the ZRC-2 token standard
+  # and applies optional filtering by address and contract address.
+  #
+  # ## Parameters
+  # - `address_hash`: Optional address hash to filter transfers involving this
+  #   address as sender or recipient (filters by `from_address_hash` or `to_address_hash`).
+  # - `contract_address_hash`: Optional contract address hash to filter transfers
+  #   for a specific token contract.
+  # - `options`: Map of query options that gets merged with default options
+  #   including pagination (`page_number`, `page_size`), ordering
+  #   (`order_by_direction`), and block range filtering (`startblock`, `endblock`).
+  #
+  # ## Returns
+  # - A list of `TokenTransfer` structs matching the specified criteria.
+  @spec list_zrc2_token_transfers(Hash.Address.t() | nil, Hash.Address.t() | nil, map()) :: [TokenTransfer.t()]
+  defp list_zrc2_token_transfers(address_hash, contract_address_hash, options) do
+    "ZRC-2" |> base_token_transfers_query(address_hash, contract_address_hash, options) |> Repo.replica().all()
   end
 
   defp list_nft_transfers(address_hash, contract_address_hash, options) do
-    "ERC-721" |> base_token_transfers_query(address_hash, contract_address_hash, options) |> Repo.all()
+    "ERC-721" |> base_token_transfers_query(address_hash, contract_address_hash, options) |> Repo.replica().all()
   end
 
   defp list_erc1155_token_transfers(address_hash, contract_address_hash, options) do
@@ -561,11 +601,13 @@ defmodule Explorer.Etherscan do
       [unnest: unnest],
       {^options.order_by_direction, unnest.index_in_batch}
     )
-    |> Repo.all()
+    |> Repo.replica().all()
   end
 
   defp list_erc404_token_transfers(address_hash, contract_address_hash, options) do
-    "ERC-404" |> base_token_transfers_query(address_hash, contract_address_hash, options) |> Repo.all()
+    "ERC-404"
+    |> base_token_transfers_query(address_hash, contract_address_hash, options)
+    |> Repo.replica().all()
   end
 
   defp base_token_transfers_query(transfers_type, address_hash, contract_address_hash, options) do
@@ -580,7 +622,7 @@ defmodule Explorer.Etherscan do
     |> where_start_block_match_tt(options)
     |> where_end_block_match_tt(options)
     |> limit(^options.page_size)
-    |> offset(^offset(options))
+    |> offset(^options_to_offset(options))
     |> maybe_preload_entities()
   end
 
@@ -638,6 +680,18 @@ defmodule Explorer.Etherscan do
     where(query, [tt], tt.block_number <= ^end_block)
   end
 
+  defp where_start_block_match_internal_transaction(query, %{startblock: nil}), do: query
+
+  defp where_start_block_match_internal_transaction(query, %{startblock: start_block}) do
+    where(query, [internal_transaction: internal_transaction], internal_transaction.block_number >= ^start_block)
+  end
+
+  defp where_end_block_match_internal_transaction(query, %{endblock: nil}), do: query
+
+  defp where_end_block_match_internal_transaction(query, %{endblock: end_block}) do
+    where(query, [internal_transaction: internal_transaction], internal_transaction.block_number <= ^end_block)
+  end
+
   defp where_start_timestamp_match(query, %{start_timestamp: nil}), do: query
 
   defp where_start_timestamp_match(query, %{start_timestamp: start_timestamp}) do
@@ -670,7 +724,17 @@ defmodule Explorer.Etherscan do
     where(query, [tt], tt.from_address_hash == ^address_hash or tt.to_address_hash == ^address_hash)
   end
 
-  defp offset(options), do: (options.page_number - 1) * options.page_size
+  defp options_to_offset(options), do: (options.page_number - 1) * options.page_size
+
+  defp options_to_limit_for_inner_query(options), do: options.page_number * options.page_size
+
+  defp options_to_directions(options) do
+    case options do
+      %{filter_by: "to"} -> [:to_address_hash, :created_contract_address_hash]
+      %{filter_by: "from"} -> [:from_address_hash]
+      _ -> [:to_address_hash, :from_address_hash, :created_contract_address_hash]
+    end
+  end
 
   @doc """
   Gets a list of logs that meet the criteria in a given filter map.

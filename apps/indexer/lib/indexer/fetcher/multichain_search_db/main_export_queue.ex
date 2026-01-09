@@ -17,9 +17,10 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueue do
 
   @behaviour BufferedTask
 
-  @default_max_batch_size 1000
+  @delete_queries_chunk_size 100
+  @default_max_batch_size 3000
   @default_max_concurrency 10
-  @failed_to_re_export_data_error "Batch export retry to the Multichain Search DB failed"
+  @failed_to_re_export_data_error "Batch main export retry to the Multichain Search DB failed"
 
   @doc false
   def child_spec([init_options, gen_server_options]) do
@@ -78,8 +79,12 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueue do
           end)
 
         all_hashes
-        |> MainExportQueue.by_hashes_query()
-        |> Repo.delete_all()
+        |> Enum.chunk_every(@delete_queries_chunk_size)
+        |> Enum.each(fn chunk_items ->
+          chunk_items
+          |> MainExportQueue.by_hashes_query()
+          |> Repo.delete_all()
+        end)
 
         :ok
 
@@ -166,7 +171,7 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueue do
 
   A map with prepared export data, including addresses, transactions, block ranges, and block hashes.
   """
-  @spec prepare_export_data([%{hash: binary, hash_type: atom, block_range: any()}]) :: %{
+  @spec prepare_export_data([%{hash: binary(), hash_type: atom(), block_range: any()}]) :: %{
           addresses: [Address.t()],
           transactions: [Transaction.t() | %{hash: String.t(), hash_type: String.t()}],
           block_ranges: [%{min_block_number: String.t(), max_block_number: String.t()}],
@@ -226,6 +231,16 @@ defmodule Indexer.Fetcher.MultichainSearchDb.MainExportQueue do
     pre_prepared_export_data
     |> Map.put(:addresses, addresses)
     |> Map.drop([:address_hashes])
+    |> (&if(
+          Map.get(&1, :block_ranges) == [
+            %{
+              max_block_number: nil,
+              min_block_number: nil
+            }
+          ],
+          do: Map.drop(&1, [:block_ranges]),
+          else: &1
+        )).()
   end
 
   defp defaults do

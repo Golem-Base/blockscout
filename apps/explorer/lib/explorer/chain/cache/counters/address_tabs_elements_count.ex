@@ -19,6 +19,7 @@ defmodule Explorer.Chain.Cache.Counters.AddressTabsElementsCount do
            | :logs
            | :withdrawals
            | :internal_transactions
+           | :beacon_deposits
            | :golembase_operations
   @typep response_status :: :limit_value | :stale | :up_to_date
 

@@ -1,6 +1,9 @@
 defmodule BlockScoutWeb.API.V2.TransactionView do
   use BlockScoutWeb, :view
-  use Utils.CompileTimeEnvHelper, chain_type: [:explorer, :chain_type]
+
+  use Utils.RuntimeEnvHelper,
+    chain_type: [:explorer, :chain_type],
+    chain_identity: [:explorer, :chain_identity]
 
   alias BlockScoutWeb.API.V2.{ApiView, Helper, InternalTransactionView, TokenTransferView, TokenView}
 
@@ -380,14 +383,13 @@ defmodule BlockScoutWeb.API.V2.TransactionView do
   def prepare_signed_authorization(signed_authorization) do
     %{
       "address_hash" => Address.checksum(signed_authorization.address),
-      # todo: It should be removed in favour `address_hash` property with the next release after 8.0.0
-      "address" => Address.checksum(signed_authorization.address),
       "chain_id" => signed_authorization.chain_id,
       "nonce" => signed_authorization.nonce,
       "r" => signed_authorization.r,
       "s" => signed_authorization.s,
       "v" => signed_authorization.v,
-      "authority" => Address.checksum(signed_authorization.authority)
+      "authority" => Address.checksum(signed_authorization.authority),
+      "status" => signed_authorization.status
     }
   end
 
@@ -521,7 +523,8 @@ defmodule BlockScoutWeb.API.V2.TransactionView do
       "transaction_tag" =>
         GetTransactionTags.get_transaction_tags(transaction.hash, current_user(single_transaction? && conn)),
       "has_error_in_internal_transactions" => transaction.has_error_in_internal_transactions,
-      "authorization_list" => authorization_list(transaction.signed_authorizations)
+      "authorization_list" => authorization_list(transaction.signed_authorizations),
+      "is_pending_update" => transaction.block && transaction.block.refetch_needed
     }
 
     result
@@ -642,8 +645,19 @@ defmodule BlockScoutWeb.API.V2.TransactionView do
     end)
   end
 
-  defp format_status({:error, reason}), do: reason
-  defp format_status(status), do: status
+  @spec format_status(
+          :pending
+          | :awaiting_internal_transactions
+          | :success
+          | {:error, :awaiting_internal_transactions}
+          | {:error, reason :: String.t()}
+        ) ::
+          :pending
+          | :awaiting_internal_transactions
+          | :success
+          | String.t()
+  def format_status({:error, reason}), do: reason
+  def format_status(status), do: status
 
   defp format_decoded_log_input({:error, :could_not_decode}), do: nil
   defp format_decoded_log_input({:ok, _method_id, _text, _mapping} = decoded), do: decoded
@@ -880,8 +894,7 @@ defmodule BlockScoutWeb.API.V2.TransactionView do
   end
 
   defp with_chain_type_transformations(transactions) do
-    chain_type = Application.get_env(:explorer, :chain_type)
-    do_with_chain_type_transformations(chain_type, transactions)
+    do_with_chain_type_transformations(chain_type(), transactions)
   end
 
   defp do_with_chain_type_transformations(:stability, transactions) do
@@ -894,25 +907,26 @@ defmodule BlockScoutWeb.API.V2.TransactionView do
   end
 
   defp with_chain_type_fields(result, transaction, single_transaction?, conn, watchlist_names) do
-    chain_type = Application.get_env(:explorer, :chain_type)
-    do_with_chain_type_fields(chain_type, result, transaction, single_transaction?, conn, watchlist_names)
+    result
+    |> do_with_chain_type_fields(
+      chain_type(),
+      transaction,
+      single_transaction?,
+      conn,
+      watchlist_names
+    )
+    |> do_with_chain_identity_fields(
+      chain_identity(),
+      transaction,
+      single_transaction?,
+      conn,
+      watchlist_names
+    )
   end
 
   defp do_with_chain_type_fields(
-         :polygon_edge,
          result,
-         transaction,
-         true = _single_transaction?,
-         conn,
-         _watchlist_names
-       ) do
-    # credo:disable-for-next-line Credo.Check.Design.AliasUsage
-    BlockScoutWeb.API.V2.PolygonEdgeView.extend_transaction_json_response(result, transaction.hash, conn)
-  end
-
-  defp do_with_chain_type_fields(
          :polygon_zkevm,
-         result,
          transaction,
          true = _single_transaction?,
          _conn,
@@ -922,27 +936,27 @@ defmodule BlockScoutWeb.API.V2.TransactionView do
     BlockScoutWeb.API.V2.PolygonZkevmView.extend_transaction_json_response(result, transaction)
   end
 
-  defp do_with_chain_type_fields(:zksync, result, transaction, true = _single_transaction?, _conn, _watchlist_names) do
+  defp do_with_chain_type_fields(result, :zksync, transaction, true = _single_transaction?, _conn, _watchlist_names) do
     # credo:disable-for-next-line Credo.Check.Design.AliasUsage
     BlockScoutWeb.API.V2.ZkSyncView.extend_transaction_json_response(result, transaction)
   end
 
-  defp do_with_chain_type_fields(:arbitrum, result, transaction, true = _single_transaction?, _conn, _watchlist_names) do
+  defp do_with_chain_type_fields(result, :arbitrum, transaction, true = _single_transaction?, _conn, _watchlist_names) do
     # credo:disable-for-next-line Credo.Check.Design.AliasUsage
     BlockScoutWeb.API.V2.ArbitrumView.extend_transaction_json_response(result, transaction)
   end
 
-  defp do_with_chain_type_fields(:optimism, result, transaction, true = _single_transaction?, _conn, _watchlist_names) do
+  defp do_with_chain_type_fields(result, :optimism, transaction, true = _single_transaction?, _conn, _watchlist_names) do
     # credo:disable-for-next-line Credo.Check.Design.AliasUsage
     BlockScoutWeb.API.V2.OptimismView.extend_transaction_json_response(result, transaction)
   end
 
-  defp do_with_chain_type_fields(:scroll, result, transaction, true = _single_transaction?, _conn, _watchlist_names) do
+  defp do_with_chain_type_fields(result, :scroll, transaction, true = _single_transaction?, _conn, _watchlist_names) do
     # credo:disable-for-next-line Credo.Check.Design.AliasUsage
     BlockScoutWeb.API.V2.ScrollView.extend_transaction_json_response(result, transaction)
   end
 
-  defp do_with_chain_type_fields(:suave, result, transaction, true = single_transaction?, conn, watchlist_names) do
+  defp do_with_chain_type_fields(result, :suave, transaction, true = single_transaction?, conn, watchlist_names) do
     # credo:disable-for-next-line Credo.Check.Design.AliasUsage
     BlockScoutWeb.API.V2.SuaveView.extend_transaction_json_response(
       transaction,
@@ -953,27 +967,45 @@ defmodule BlockScoutWeb.API.V2.TransactionView do
     )
   end
 
-  defp do_with_chain_type_fields(:stability, result, transaction, _single_transaction?, _conn, _watchlist_names) do
+  defp do_with_chain_type_fields(result, :stability, transaction, _single_transaction?, _conn, _watchlist_names) do
     # credo:disable-for-next-line Credo.Check.Design.AliasUsage
     BlockScoutWeb.API.V2.StabilityView.extend_transaction_json_response(result, transaction)
   end
 
-  defp do_with_chain_type_fields(:ethereum, result, transaction, _single_transaction?, _conn, _watchlist_names) do
+  defp do_with_chain_type_fields(result, :ethereum, transaction, _single_transaction?, _conn, _watchlist_names) do
     # credo:disable-for-next-line Credo.Check.Design.AliasUsage
     BlockScoutWeb.API.V2.EthereumView.extend_transaction_json_response(result, transaction)
   end
 
-  defp do_with_chain_type_fields(:celo, result, transaction, _single_transaction?, _conn, _watchlist_names) do
-    # credo:disable-for-next-line Credo.Check.Design.AliasUsage
-    BlockScoutWeb.API.V2.CeloView.extend_transaction_json_response(result, transaction)
-  end
-
-  defp do_with_chain_type_fields(:zilliqa, result, transaction, _single_tx?, _conn, _watchlist_names) do
+  defp do_with_chain_type_fields(result, :zilliqa, transaction, _single_tx?, _conn, _watchlist_names) do
     # credo:disable-for-next-line Credo.Check.Design.AliasUsage
     BlockScoutWeb.API.V2.ZilliqaView.extend_transaction_json_response(result, transaction)
   end
 
-  defp do_with_chain_type_fields(_chain_type, result, _transaction, _single_transaction?, _conn, _watchlist_names) do
+  defp do_with_chain_type_fields(result, _chain_type, _transaction, _single_transaction?, _conn, _watchlist_names) do
+    result
+  end
+
+  defp do_with_chain_identity_fields(
+         result,
+         {:optimism, :celo},
+         transaction,
+         _single_transaction?,
+         _conn,
+         _watchlist_names
+       ) do
+    # credo:disable-for-next-line Credo.Check.Design.AliasUsage
+    BlockScoutWeb.API.V2.CeloView.extend_transaction_json_response(result, transaction)
+  end
+
+  defp do_with_chain_identity_fields(
+         result,
+         _chain_identity,
+         _transaction,
+         _single_transaction?,
+         _conn,
+         _watchlist_names
+       ) do
     result
   end
 end

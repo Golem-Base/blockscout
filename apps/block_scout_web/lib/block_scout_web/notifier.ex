@@ -2,7 +2,9 @@ defmodule BlockScoutWeb.Notifier do
   @moduledoc """
   Responds to events by sending appropriate channel updates to front-end.
   """
-  use Utils.CompileTimeEnvHelper, chain_type: [:explorer, :chain_type]
+  use Utils.CompileTimeEnvHelper,
+    chain_type: [:explorer, :chain_type],
+    chain_identity: [:explorer, :chain_identity]
 
   require Logger
 
@@ -32,12 +34,12 @@ defmodule BlockScoutWeb.Notifier do
   alias Explorer.Chain.{
     Address,
     Address.CoinBalance,
+    Address.Reputation,
     BlockNumberHelper,
     DenormalizationHelper,
     InternalTransaction,
     Token.Instance,
-    Transaction,
-    Wei
+    Transaction
   }
 
   alias Explorer.Chain.Cache.Counters.{AddressesCount, AverageBlockTime, Helper}
@@ -63,10 +65,10 @@ defmodule BlockScoutWeb.Notifier do
       nil
   end
 
-  case @chain_type do
-    :celo ->
+  case @chain_identity do
+    {:optimism, :celo} ->
       @chain_type_transaction_associations [
-        :gas_token
+        gas_token: Reputation.reputation_association()
       ]
 
     _ ->
@@ -102,7 +104,9 @@ defmodule BlockScoutWeb.Notifier do
 
   def handle_event({:chain_event, :address_coin_balances, type, address_coin_balances})
       when type in [:realtime, :on_demand] do
-    Enum.each(address_coin_balances, &broadcast_address_coin_balance/1)
+    address_coin_balances
+    |> Enum.reject(fn balance -> is_nil(balance[:value]) end)
+    |> Enum.each(&broadcast_address_coin_balance/1)
   end
 
   def handle_event({:chain_event, :address_token_balances, type, address_token_balances})
@@ -262,7 +266,7 @@ defmodule BlockScoutWeb.Notifier do
       all_token_transfers
       |> Repo.preload(
         DenormalizationHelper.extend_transaction_preload([
-          :token,
+          [token: Reputation.reputation_association()],
           :transaction,
           from_address: [
             :scam_badge,
@@ -304,7 +308,10 @@ defmodule BlockScoutWeb.Notifier do
       to_address: [:scam_badge, :names, :smart_contract, proxy_implementations_association()]
     ]
 
-    preloads = if API_V2.enabled?(), do: [:token_transfers | base_preloads], else: base_preloads
+    preloads =
+      if API_V2.enabled?(),
+        do: [{:token_transfers, [token: Reputation.reputation_association()]} | base_preloads],
+        else: base_preloads
 
     transactions
     |> Repo.preload(preloads)
@@ -395,12 +402,22 @@ defmodule BlockScoutWeb.Notifier do
   end
 
   @current_token_balances_limit 50
-  def handle_event({:chain_event, :address_current_token_balances, :on_demand, address_current_token_balances}) do
-    address_current_token_balances.address_current_token_balances
+  def handle_event(
+        {:chain_event, :address_current_token_balances, type,
+         %{address_current_token_balances: address_current_token_balances, address_hash: address_hash}}
+      )
+      when type in [:realtime, :on_demand] do
+    address_current_token_balances
+    |> Repo.preload(token: Reputation.reputation_association())
     |> Enum.group_by(& &1.token_type)
     |> Enum.each(fn {token_type, balances} ->
-      broadcast_token_balances(address_current_token_balances.address_hash, token_type, balances)
+      broadcast_token_balances(address_hash, token_type, balances)
     end)
+  end
+
+  def handle_event({:chain_event, :address_current_token_balances, :realtime, _empty_balances_params}) do
+    # Don't broadcast empty balances params from realtime block fetcher
+    :ok
   end
 
   case @chain_type do
@@ -551,15 +568,17 @@ defmodule BlockScoutWeb.Notifier do
   end
 
   defp broadcast_address_coin_balance(%{address_hash: address_hash, block_number: block_number}) do
-    coin_balance = CoinBalance.get_coin_balance(address_hash, block_number)
+    coin_balance = CoinBalance.get_coin_balance(address_hash, block_number, @api_true)
 
-    # TODO: delete duplicated event when old UI becomes deprecated
-    Endpoint.broadcast("addresses_old:#{address_hash}", "coin_balance", %{
-      block_number: block_number,
-      coin_balance: coin_balance
-    })
+    if coin_balance.delta && !Decimal.eq?(coin_balance.delta, Decimal.new(0)) do
+      # TODO: delete duplicated event when old UI becomes deprecated
+      Endpoint.broadcast("addresses_old:#{address_hash}", "coin_balance", %{
+        block_number: block_number,
+        coin_balance: coin_balance
+      })
+    end
 
-    if coin_balance.value && coin_balance.delta do
+    if coin_balance.value && coin_balance.delta && !Decimal.eq?(coin_balance.delta, Decimal.new(0)) do
       rendered_coin_balance = AddressView.render("coin_balance.json", %{coin_balance: coin_balance})
 
       Endpoint.broadcast("addresses:#{address_hash}", "coin_balance", %{
@@ -567,7 +586,7 @@ defmodule BlockScoutWeb.Notifier do
       })
 
       Endpoint.broadcast("addresses:#{address_hash}", "current_coin_balance", %{
-        coin_balance: coin_balance.value || %Wei{value: Decimal.new(0)},
+        coin_balance: coin_balance.value,
         exchange_rate: Market.get_coin_exchange_rate().fiat_value,
         block_number: block_number
       })

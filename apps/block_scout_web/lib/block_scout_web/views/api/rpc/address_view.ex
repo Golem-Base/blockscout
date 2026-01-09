@@ -129,7 +129,8 @@ defmodule BlockScoutWeb.API.RPC.AddressView do
       "contractAddress" => "#{transaction.created_contract_address_hash}",
       "cumulativeGasUsed" => "#{transaction.cumulative_gas_used}",
       "gasUsed" => "#{transaction.gas_used}",
-      "confirmations" => "#{transaction.confirmations}"
+      "confirmations" => "#{transaction.confirmations}",
+      "methodId" => Transaction.method_id(transaction)
     }
   end
 
@@ -156,9 +157,21 @@ defmodule BlockScoutWeb.API.RPC.AddressView do
   defp prepare_common_token_transfer(token_transfer, max_block_number, decoded_input) do
     tt_denormalization_fields =
       if DenormalizationHelper.tt_denormalization_finished?() do
-        %{"timeStamp" => to_string(DateTime.to_unix(token_transfer.transaction.block_timestamp))}
+        %{
+          "timeStamp" =>
+            if(token_transfer.transaction.block_timestamp,
+              do: to_string(DateTime.to_unix(token_transfer.transaction.block_timestamp)),
+              else: ""
+            )
+        }
       else
-        %{"timeStamp" => to_string(DateTime.to_unix(token_transfer.block.timestamp))}
+        %{
+          "timeStamp" =>
+            if(token_transfer.block.timestamp,
+              do: to_string(DateTime.to_unix(token_transfer.block.timestamp)),
+              else: ""
+            )
+        }
       end
 
     %{
@@ -205,6 +218,12 @@ defmodule BlockScoutWeb.API.RPC.AddressView do
   end
 
   defp prepare_token_transfer(%{token_type: "ERC-20"} = token_transfer, max_block_number, decoded_input) do
+    token_transfer
+    |> prepare_common_token_transfer(max_block_number, decoded_input)
+    |> Map.put_new(:value, to_string(token_transfer.amount))
+  end
+
+  defp prepare_token_transfer(%{token_type: "ZRC-2"} = token_transfer, max_block_number, decoded_input) do
     token_transfer
     |> prepare_common_token_transfer(max_block_number, decoded_input)
     |> Map.put_new(:value, to_string(token_transfer.amount))
