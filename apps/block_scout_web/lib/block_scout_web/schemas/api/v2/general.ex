@@ -1167,6 +1167,13 @@ defmodule BlockScoutWeb.Schemas.API.V2.General do
       required: false,
       description: "Blob for paging in the search results"
     },
+    "golembase_entity" => %Parameter{
+      name: :golembase_entity,
+      in: :query,
+      schema: %Schema{type: :object},
+      required: false,
+      description: "DBChain Entity to search for"
+    },
     "user_operation" => %Parameter{
       name: :user_operation,
       in: :query,

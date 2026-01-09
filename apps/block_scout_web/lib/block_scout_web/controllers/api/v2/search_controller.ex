@@ -32,6 +32,7 @@ defmodule BlockScoutWeb.API.V2.SearchController do
           "block",
           "blob",
           "user_operation",
+          "golembase_entity",
           "address",
           "ens_domain"
         ]),
@@ -76,7 +77,7 @@ defmodule BlockScoutWeb.API.V2.SearchController do
              redirect: %Schema{type: :boolean, nullable: true},
              type: %Schema{
                type: :string,
-               enum: ["address", "block", "transaction", "user_operation", "blob"],
+               enum: ["address", "block", "transaction", "user_operation", "blob", "golembase_entity"],
                nullable: true
              }
            }
