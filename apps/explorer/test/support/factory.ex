@@ -1737,4 +1737,12 @@ defmodule Explorer.Factory do
       index: sequence(:index, &"#{&1}")
     }
   end
+
+  def migration_status_factory do
+    %MigrationStatus{
+      migration_name: sequence("migration_", &"migration_#{&1}"),
+      status: "started",
+      meta: nil
+    }
+  end
 end
