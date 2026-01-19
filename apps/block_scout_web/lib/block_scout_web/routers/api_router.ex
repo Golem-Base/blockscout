@@ -138,11 +138,13 @@ defmodule BlockScoutWeb.Routers.ApiRouter do
     end
 
     scope "/config" do
+      get("/backend", V2.ConfigController, :backend)
       get("/backend-version", V2.ConfigController, :backend_version)
       get("/csv-export", V2.ConfigController, :csv_export)
       get("/indexer", V2.ConfigController, :indexer)
       get("/public-metrics", V2.ConfigController, :public_metrics)
       get("/smart-contracts/languages", V2.ConfigController, :languages_list)
+      get("/db-background-migrations", V2.ConfigController, :db_background_migrations)
 
       if @chain_identity == {:optimism, :celo} do
         get("/celo", V2.ConfigController, :celo)
