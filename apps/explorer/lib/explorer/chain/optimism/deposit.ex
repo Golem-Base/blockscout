@@ -128,6 +128,13 @@ defmodule Explorer.Chain.Optimism.Deposit do
 
   defp page_deposits(query, %PagingOptions{key: nil}), do: query
 
+  # Workaround for Blockscout upstream pagination bug.
+  defp page_deposits(query, %PagingOptions{key: {block_number}}) do
+    from(d in query,
+      where: d.l1_block_number < ^block_number
+    )
+  end
+
   defp page_deposits(query, %PagingOptions{key: {block_number, l2_transaction_hash}}) do
     from(d in query,
       where: d.l1_block_number < ^block_number,
