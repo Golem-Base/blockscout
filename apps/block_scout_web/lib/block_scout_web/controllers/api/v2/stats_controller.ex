@@ -94,48 +94,48 @@ defmodule BlockScoutWeb.API.V2.StatsController do
 
     gas_price = Application.get_env(:block_scout_web, :gas_price)
 
-    base_stats = %{
-      "total_blocks" => BlocksCount.get() |> to_string(),
-      "total_addresses" => AddressesCount.fetch() |> to_string(),
-      "total_transactions" => TransactionsCount.get() |> to_string(),
-      "average_block_time" => AverageBlockTime.average_block_time() |> Duration.to_milliseconds(),
-      "coin_image" => exchange_rate.image_url,
-      "secondary_coin_image" => secondary_coin_exchange_rate.image_url,
-      "coin_price" => exchange_rate.fiat_value,
-      "coin_price_change_percentage" => coin_price_change,
-      "secondary_coin_price" => secondary_coin_exchange_rate.fiat_value,
-      "total_gas_used" => GasUsageSum.total() |> to_string(),
-      "transactions_today" => Enum.at(transaction_stats, 0).number_of_transactions |> to_string(),
-      "gas_used_today" => Enum.at(transaction_stats, 0).gas_used,
-      "gas_prices" => gas_prices,
-      "gas_prices_update_in" => GasPriceOracle.update_in(),
-      "gas_price_updated_at" => GasPriceOracle.get_updated_at(),
-      "static_gas_price" => gas_price,
-      "market_cap" => Helper.market_cap(market_cap_type, exchange_rate),
-      "tvl" => exchange_rate.tvl,
-      "network_utilization_percentage" => network_utilization_percentage(),
-      "chain_id" => get_chain_id()
-    }
-
-    golembase_stats =
-      if GolemBase.enabled?() do
-        %{
-          "golembase_storage_limit" => get_golembase_storage_limit(),
-          "golembase_used_slots" => get_golembase_used_slots(),
-          "golembase_active_entities_size" => get_golembase_active_entities_size(),
-          "golembase_active_entities_count" => get_golembase_active_entities_count()
-        }
-      else
-        %{}
-      end
-
-    json(
-      conn,
-      Map.merge(base_stats, golembase_stats)
+    response =
+      %{
+        "total_blocks" => BlocksCount.get() |> to_string(),
+        "total_addresses" => AddressesCount.fetch() |> to_string(),
+        "total_transactions" => TransactionsCount.get() |> to_string(),
+        "average_block_time" => AverageBlockTime.average_block_time() |> Duration.to_milliseconds(),
+        "coin_image" => exchange_rate.image_url,
+        "secondary_coin_image" => secondary_coin_exchange_rate.image_url,
+        "coin_price" => exchange_rate.fiat_value,
+        "coin_price_change_percentage" => coin_price_change,
+        "secondary_coin_price" => secondary_coin_exchange_rate.fiat_value,
+        "total_gas_used" => GasUsageSum.total() |> to_string(),
+        "transactions_today" => Enum.at(transaction_stats, 0).number_of_transactions |> to_string(),
+        "gas_used_today" => Enum.at(transaction_stats, 0).gas_used,
+        "gas_prices" => gas_prices,
+        "gas_prices_update_in" => GasPriceOracle.update_in(),
+        "gas_price_updated_at" => GasPriceOracle.get_updated_at(),
+        "static_gas_price" => gas_price,
+        "market_cap" => Helper.market_cap(market_cap_type, exchange_rate),
+        "tvl" => exchange_rate.tvl,
+        "network_utilization_percentage" => network_utilization_percentage(),
+        "chain_id" => get_chain_id()
+      }
+      |> maybe_add_golembase_stats()
       |> add_chain_type_fields()
       |> add_chain_identity_fields()
       |> backward_compatibility(conn)
-    )
+
+    json(conn, response)
+  end
+
+  defp maybe_add_golembase_stats(stats) do
+    if GolemBase.enabled?() do
+      Map.merge(stats, %{
+        "golembase_storage_limit" => get_golembase_storage_limit(),
+        "golembase_used_slots" => get_golembase_used_slots(),
+        "golembase_active_entities_size" => get_golembase_active_entities_size(),
+        "golembase_active_entities_count" => get_golembase_active_entities_count()
+      })
+    else
+      stats
+    end
   end
 
   defp network_utilization_percentage do
