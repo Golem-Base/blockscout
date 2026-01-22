@@ -3,6 +3,7 @@ defmodule BlockScoutWeb.API.V2.StatsControllerTest do
 
   alias Explorer.Chain.Address
   alias Explorer.Chain.Cache.Counters.{AddressesCount, AverageBlockTime}
+  alias Explorer.Chain.GolemBase
 
   describe "/stats" do
     setup do
@@ -41,10 +42,13 @@ defmodule BlockScoutWeb.API.V2.StatsControllerTest do
       assert Map.has_key?(response, "market_cap")
       assert Map.has_key?(response, "network_utilization_percentage")
       assert Map.has_key?(response, "chain_id")
-      assert Map.has_key?(response, "golembase_storage_limit")
-      assert Map.has_key?(response, "golembase_used_slots")
-      assert Map.has_key?(response, "golembase_active_entities_size")
-      assert Map.has_key?(response, "golembase_active_entities_count")
+
+      if GolemBase.enabled?() do
+        assert Map.has_key?(response, "golembase_storage_limit")
+        assert Map.has_key?(response, "golembase_used_slots")
+        assert Map.has_key?(response, "golembase_active_entities_size")
+        assert Map.has_key?(response, "golembase_active_entities_count")
+      end
     end
   end
 
